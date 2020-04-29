@@ -1,2 +1,2 @@
-# *A*ctive *G*alactic *N*ucleus (AGN) *T*ool*K*it
+# Active Galactic Nucleus (AGN) ToolKit
 Python Toolkit for AGN Analysis
