@@ -1,5 +1,5 @@
 # data
-/dev/data/*
+/dev/testData/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
