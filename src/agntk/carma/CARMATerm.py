@@ -65,8 +65,8 @@ class DRW_term(terms.Term):
 
         return np.exp((log_sigma - np.log(1 / 2) - log_tau) / 2)
 
-    def get_rms_amp(self, params):
-        log_sigma, log_tau = params
+    def get_rms_amp(self):
+        log_sigma, log_tau = self.get_parameter_vector()
 
         return np.exp(log_sigma)
 
