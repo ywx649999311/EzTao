@@ -6,15 +6,15 @@ import numpy as np
 
 
 def test_drw():
-    term = DRW_term(np.log(1), np.log(200))
+    term = DRW_term(np.log(0.35), np.log(100))
 
     # test celerite term coeffs
     celerite_coeffs = term.get_all_coefficients()
-    assert np.allclose(celerite_coeffs[0][0], [1.0])
-    assert np.allclose(celerite_coeffs[1][0], [0.005])
+    assert np.allclose(celerite_coeffs[0][0], [0.1225])
+    assert np.allclose(celerite_coeffs[1][0], [0.01])
 
     # test driving amplitude
-    assert np.allclose(term.get_perturb_amp(), [0.1])
+    assert np.allclose(term.get_perturb_amp(), [0.04949747468305])
 
 
 def test_dho():

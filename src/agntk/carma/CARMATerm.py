@@ -63,7 +63,7 @@ class DRW_term(terms.Term):
     def get_perturb_amp(self):
         log_sigma, log_tau = self.get_parameter_vector()
 
-        return np.exp((log_sigma - np.log(1 / 2) - log_tau) / 2)
+        return np.exp((2 * log_sigma - np.log(1 / 2) - log_tau) / 2)
 
     def get_rms_amp(self):
         log_sigma, log_tau = self.get_parameter_vector()
