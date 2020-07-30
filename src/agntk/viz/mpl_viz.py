@@ -18,9 +18,9 @@ def plot_drw_ll(
         t (array-like): An array of time points
         y (array-like): An array of fluxes at the abvoe time points
         yerr (array-like): An array of photometric errors
-        best_params (array-like): Best-fit parameters in [tau, amp]
+        best_params (array-like): Best-fit parameters in [amp, tau]
         gp (object): A DRW celerite GP object
-        prob_func (func): The posterior/probability function
+        prob_func (func): Vectorized posterior/probability function
         amp_range (array-like, optional): The range of parameters to eval 
             probability. Defaults to None.
         tau_range (array-like, optional): The range of parameters to eval 
