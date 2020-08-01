@@ -138,6 +138,9 @@ class DHO_term(terms.Term):
         (square root of the process variance)
         """
 
+        # force to recompute acf
+        self.get_all_coefficients()
+
         return np.sqrt(np.abs(np.sum(self.acf)))
 
 
@@ -223,5 +226,7 @@ class CARMA_term(terms.Term):
         """Return the amplitude of the underlying CARMA process 
         (square root of the process variance)
         """
+        # force to recompute acf
+        self.get_all_coefficients()
 
         return np.sqrt(np.abs(np.sum(self.acf)))
