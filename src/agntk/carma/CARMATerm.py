@@ -34,7 +34,7 @@ def acf(arparam, maparam):
 
     for k in range(q + 1):
         num_left += maparam[k] * np.power(arroots, k)
-        num_right += maparam[k] * np.power(-arroots, k)
+        num_right += maparam[k] * np.power(np.negative(arroots), k)
 
     for j in range(1, p):
         root_idx = np.arange(p)
