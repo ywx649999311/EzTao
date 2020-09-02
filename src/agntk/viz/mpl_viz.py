@@ -191,7 +191,9 @@ def plot_dho_ll(
 
     ll_reshape = bulk_ll.reshape(tuple(dims))
     max_ll, min_ll = np.max(bulk_ll), np.min(bulk_ll)
-    idx_max = np.unravel_index(np.argmax(ll_reshape, axis=None), ll_reshape.shape)
+    idx_max = np.unravel_index(
+        np.argmax(np.median(ll_reshape, axis=(0, 1)), axis=None), (outer_dim, outer_dim)
+    )
     log_levels = 1 + max_ll - np.logspace(0, np.log10(max_ll - min_ll), nLevels)[::-1]
 
     # plot
@@ -236,12 +238,11 @@ def plot_dho_ll(
         images[key].set_norm(norm)
 
     fig.colorbar(
-        images[f"{idx_max[2]}_{idx_max[3]}"], ax=axs, fraction=0.05, format="%.0f"
+        images[f"{idx_max[0]}_{idx_max[1]}"], ax=axs, fraction=0.05, format="%.0f"
     )
     fig.text(0.5, 0.06, "log(a1)", ha="center", fontsize=25)
     fig.text(0.06, 0.5, "log(a2)", va="center", rotation="vertical", fontsize=25)
-    axs[idx_max[2], idx_max[3]].legend()
-    axs[idx_max[2], idx_max[3]].legend()
+    axs[idx_max[0], idx_max[1]].legend()
 
 
 def plot_pred_drw_lc(
@@ -268,6 +269,60 @@ def plot_pred_drw_lc(
 
     # create GP model using params
     kernel = DRW_term(np.log(best_amp), np.log(best_tau))
+    gp = celerite.GP(kernel, mean=np.mean(y))
+    gp.compute(t, yerr)
+
+    # generate pred LC
+    t_pred = np.linspace(0, np.max(t), num_data)
+    return_var = True
+    try:
+        mu, var = gp.predict(y, t_pred, return_var=return_var)
+        std = np.sqrt(var)
+    except FloatingPointError as e:
+        print(e)
+        print("No variance will be returned")
+        return_var = False
+        mu, var = gp.predict(y, t_pred, return_var=return_var)
+
+    # Plot the data
+    fig = plt.figure(figsize=(10, 5))
+    color = "#ff7f0e"
+    plt.errorbar(t, y, yerr=yerr, fmt=".k", capsize=0, label="Input Data")
+    plt.plot(t_pred, mu, color=color, label="Mean Prection")
+    if return_var:
+        plt.fill_between(
+            t_pred, mu + std, mu - std, color=color, alpha=0.3, edgecolor="none"
+        )
+    plt.ylabel(r"Flux (arb. unit)")
+    plt.xlabel(r"Time (day)")
+    plt.gca().yaxis.set_major_locator(plt.MaxNLocator(5))
+    plt.title("Maximum Likelihood Prediction")
+    plt.tight_layout()
+
+
+def plot_pred_dho_lc(
+    lc_df, best_params, num_data=500, time_col="t", y_col="y", yerr_col="yerr"
+):
+    """
+    Plot GP predicted light curve given best-fit parameters. 
+
+    Args:
+        lc_df (dataframe): The dataframe containing the light curve.
+        best_params (array-like): Best-fit DHO parameters.
+        num_data (int): The number of points in the predicated LC.
+        time_col (str, optional): Time columne name. Defaults to 't'.
+        y_col (str, optional): Y axis column name. Defaults to 'y'.
+        yerr_col (str, optional): Error column name. Defaults to 'yerr'.
+    """
+
+    # get LC data
+    lc_df = lc_df.sort_values(by=time_col).reset_index(drop=True)
+    t = lc_df[time_col].values - lc_df[time_col].min()
+    y = lc_df[y_col].values
+    yerr = lc_df[yerr_col].values
+
+    # create GP model using params
+    kernel = DHO_term(*np.log(best_params))
     gp = celerite.GP(kernel, mean=np.mean(y))
     gp.compute(t, yerr)
 
