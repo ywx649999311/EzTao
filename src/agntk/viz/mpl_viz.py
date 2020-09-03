@@ -77,7 +77,9 @@ def plot_drw_ll(
     # normalize, better contours
     max_ll, min_ll = np.max(bulk_lp), np.min(bulk_lp)
     log_levels = (
-        1 + max_ll - np.logspace(0, np.log(max_ll - min_ll), nLevels, base=np.e)[::-1]
+        1
+        + max_ll
+        - np.sort(np.logspace(0, np.log(max_ll - min_ll), nLevels, base=np.e))[::-1]
     )
     norm = mpl.colors.SymLogNorm(
         linthresh=np.abs(max_ll), linscale=1, vmin=min_ll, vmax=max_ll + 1, base=np.e
@@ -194,7 +196,9 @@ def plot_dho_ll(
     idx_max = np.unravel_index(
         np.argmax(np.median(ll_reshape, axis=(0, 1)), axis=None), (outer_dim, outer_dim)
     )
-    log_levels = 1 + max_ll - np.logspace(0, np.log10(max_ll - min_ll), nLevels)[::-1]
+    log_levels = (
+        1 + max_ll - np.sort(np.logspace(0, np.log10(max_ll - min_ll), nLevels))[::-1]
+    )
 
     # plot
     figsize = (outer_dim * 5, outer_dim * 5)
