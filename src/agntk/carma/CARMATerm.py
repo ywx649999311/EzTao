@@ -181,6 +181,8 @@ class CARMA_term(terms.Term):
     def get_real_coefficients(self, params):
 
         # get roots and acf
+        self.arpars = np.exp(params[: self.p])
+        self.mapars = np.exp(params[self.p :])
         roots = np.roots(np.append([1], self.arpars))
         self.acf = acf(self.arpars, self.mapars)
 
@@ -199,6 +201,8 @@ class CARMA_term(terms.Term):
     def get_complex_coefficients(self, params):
 
         # get roots and acf
+        self.arpars = np.exp(params[: self.p])
+        self.mapars = np.exp(params[self.p :])
         roots = np.roots(np.append([1], self.arpars))
         self.acf = acf(self.arpars, self.mapars)
 
