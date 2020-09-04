@@ -356,3 +356,72 @@ def plot_pred_dho_lc(
     plt.gca().yaxis.set_major_locator(plt.MaxNLocator(5))
     plt.title("Maximum Likelihood Prediction")
     plt.tight_layout()
+
+
+def plot_pred_lc(
+    lc_df, best_params, p, q, num_data=500, time_col="t", y_col="y", yerr_col="yerr"
+):
+    """
+    Plot GP predicted light curve given best-fit parameters. 
+
+    Args:
+        lc_df (dataframe): The dataframe containing the light curve.
+        best_params (array-like): Best-fit CARMA parameters.
+        p (int): CARMA p order.
+        q (int): CARMA q order.
+        num_data (int): The number of points in the predicated LC.
+        time_col (str, optional): Time columne name. Defaults to 't'.
+        y_col (str, optional): Y axis column name. Defaults to 'y'.
+        yerr_col (str, optional): Error column name. Defaults to 'yerr'.
+    """
+
+    assert len(best_params) == int(p + q + 1)
+
+    # get LC data
+    lc_df = lc_df.sort_values(by=time_col).reset_index(drop=True)
+    t = lc_df[time_col].values - lc_df[time_col].min()
+    y = lc_df[y_col].values
+    yerr = lc_df[yerr_col].values
+
+    # create GP model using params
+    kernel = CARMA_term(np.log(best_params[:p]), np.log(best_params[p:]))
+    gp = celerite.GP(kernel, mean=np.mean(y))
+    compute = True
+    compute_ct = 0
+
+    # compute can't factorize, try 4 more times
+    while compute & (compute_ct < 5):
+        compute_ct += 1
+        try:
+            gp.compute(t, yerr)
+            compute = False
+        except celerite.solver.LinAlgError:
+            new_params = np.log(best_params) + 1e-6 * np.random.randn(p + q + 1)
+            gp.set_parameter_vector(new_params)
+
+    # generate pred LC
+    t_pred = np.linspace(0, np.max(t), num_data)
+    return_var = True
+    try:
+        mu, var = gp.predict(y, t_pred, return_var=return_var)
+        std = np.sqrt(var)
+    except FloatingPointError as e:
+        print(e)
+        print("No variance will be returned")
+        return_var = False
+        mu, var = gp.predict(y, t_pred, return_var=return_var)
+
+    # Plot the data
+    fig = plt.figure(figsize=(10, 5))
+    color = "#ff7f0e"
+    plt.errorbar(t, y, yerr=yerr, fmt=".k", capsize=0, label="Input Data")
+    plt.plot(t_pred, mu, color=color, label="Mean Prection")
+    if return_var:
+        plt.fill_between(
+            t_pred, mu + std, mu - std, color=color, alpha=0.3, edgecolor="none"
+        )
+    plt.ylabel(r"Flux (arb. unit)")
+    plt.xlabel(r"Time (day)")
+    plt.gca().yaxis.set_major_locator(plt.MaxNLocator(5))
+    plt.title("Maximum Likelihood Prediction")
+    plt.tight_layout()
