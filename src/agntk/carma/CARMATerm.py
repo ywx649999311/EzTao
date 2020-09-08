@@ -1,7 +1,5 @@
 import numpy as np
-import os, sys
-import celerite
-from celerite import GP, terms
+from celerite import terms
 
 __all__ = ["acf", "DRW_term", "DHO_term", "CARMA_term"]
 

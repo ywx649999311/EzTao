@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import numpy as np
 import celerite
-from agntk.carma.CARMATerm import *
+from ..carma.CARMATerm import *
 
 mpl.rc_file(
     "https://raw.githubusercontent.com/ywx649999311/project_template"
