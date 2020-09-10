@@ -14,15 +14,15 @@ from setuptools import find_packages, setup, Command
 
 # Package meta-data.
 NAME = "agntk"
-DESCRIPTION = "AGN variability analysis toolkit."
+DESCRIPTION = "AGN time-series analysis toolkit."
 URL = "https://https://github.com/ywx649999311/agntk"
-EMAIL = "me@example.com"
+EMAIL = "wy73@drexel.edu"
 AUTHOR = "Weixiang Yu"
 REQUIRES_PYTHON = ">=3.6.0"
 VERSION = "0.1.0"
 
 # What packages are required for this module to be executed?
-REQUIRED = ["celerite"]
+REQUIRED = ["celerite", "scipy"]
 
 # What packages are optional?
 EXTRAS = {
