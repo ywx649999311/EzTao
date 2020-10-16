@@ -24,7 +24,7 @@ def test_dho():
 
     assert term1_coeffs[0].size < 1
     assert term1_coeffs[1].size < 1
-    assert np.allclose(term1.get_amp(), [1.567907310185565])
+    assert np.allclose(term1.get_rms_amp(), [1.567907310185565])
 
     # Real DHO
     term2 = DHO_term(np.log(2), np.log(0.8), np.log(1), np.log(0.5))
@@ -32,7 +32,7 @@ def test_dho():
 
     assert term2_coeffs[0].size > 0
     assert term2_coeffs[1].size > 0
-    assert np.allclose(term2.get_amp(), [0.6123724356957945])
+    assert np.allclose(term2.get_rms_amp(), [0.6123724356957945])
 
 
 def test_carma():
@@ -44,7 +44,7 @@ def test_carma():
     assert carma30a_coeffs[3].size < 1
     assert carma30a_coeffs[4].size < 1
     assert carma30a_coeffs[5].size < 1
-    assert np.allclose(carma30a.get_amp(), [0.496699633899391])
+    assert np.allclose(carma30a.get_rms_amp(), [0.496699633899391])
 
     # 2nd CARMA(3,0)
     carma30b = CARMA_term(np.log([3, 3.2, 1.2]), np.log([1]))
@@ -54,7 +54,7 @@ def test_carma():
     assert carma30b_coeffs[3].size == 1
     assert carma30b_coeffs[4].size == 1
     assert carma30b_coeffs[5].size == 1
-    assert np.allclose(carma30b.get_amp(), [0.38575837490522974])
+    assert np.allclose(carma30b.get_rms_amp(), [0.38575837490522974])
 
     # Compare CARMA_term to DHO_term
     dho_term = DHO_term(np.log(2), np.log(1.2), np.log(1), np.log(3))
@@ -64,7 +64,7 @@ def test_carma():
     carma21_coeffs = carma21.get_all_coefficients()
 
     assert np.allclose(np.concatenate(dho_coeffs), np.concatenate(carma21_coeffs))
-    assert np.allclose(dho_term.get_amp(), carma21.get_amp())
+    assert np.allclose(dho_term.get_rms_amp(), carma21.get_rms_amp())
 
 
 def test_acf():

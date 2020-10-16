@@ -131,7 +131,7 @@ class DHO_term(terms.Term):
 
         return (ac, bc, cc, dc)
 
-    def get_amp(self):
+    def get_rms_amp(self):
         """Return the amplitude of the underlying CARMA process 
         (square root of the process variance)
         """
@@ -224,7 +224,7 @@ class CARMA_term(terms.Term):
 
         return (ac, bc, cc, dc)
 
-    def get_amp(self):
+    def get_rms_amp(self):
         """Return the amplitude of the underlying CARMA process 
         (square root of the process variance)
         """
