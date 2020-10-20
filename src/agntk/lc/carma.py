@@ -460,7 +460,8 @@ def carma_fit(t, y, yerr, p, q, de=True, debug=False, plot=False, user_bounds=No
     jac_log_rec = 10
 
     # initialize parameter and kernel
-    kernel = DRW_term(*carma_log_param_init(dim))
+    carma_log_params = carma_log_param_init(dim)
+    kernel = CARMA_term(carma_log_params[:p], carma_log_params[p:])
     gp = GP(kernel, mean=np.median(y))
 
     # compute can't factorize, try 4 more times
