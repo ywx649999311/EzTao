@@ -33,6 +33,10 @@ def test_simRand():
         assert np.std(err) < 0.25
         assert np.abs(np.median(err)) < 0.25
 
+        # check returned dimension
+        assert t.shape[1] == y.shape[1] == yerr.shape[1] == 150
+        assert t.shape[0] == y.shape[0] == yerr.shape[0] == 100
+
 
 # test_simRand()
 

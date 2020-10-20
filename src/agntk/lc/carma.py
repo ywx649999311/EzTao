@@ -39,15 +39,16 @@ def gpSimFull(carmaTerm, SNR, duration, N, nLC=1):
     # factor and factor_num to track factorization error
     factor = True
     fact_num = 0
+    yerr_reg = 1.123e-12
 
     while factor:
         try:
-            gp_sim.compute(t, yerr)
+            gp_sim.compute(t, yerr_reg)
             factor = False
         except Exception:
-            # if error, try to re-init t and yerr
+            # if error, try to re-init t and yerr_reg
             t = np.linspace(0, duration, N)
-            yerr = np.random.normal(0, carmaTerm.get_rms_amp() / SNR, N)
+            yerr_reg += 1.123e-12
 
             fact_num += 1
             if fact_num > 10:
@@ -58,7 +59,7 @@ def gpSimFull(carmaTerm, SNR, duration, N, nLC=1):
 
     t = np.repeat(t[None, :], nLC, axis=0)
     yerr = np.repeat(yerr[None, :], nLC, axis=0)
-    y = gp_sim.sample(size=nLC)
+    y = gp_sim.sample(size=nLC) + yerr
 
     return t, y, yerr
 
