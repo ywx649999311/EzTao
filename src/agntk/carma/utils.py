@@ -8,12 +8,16 @@ Methods:
     gp_psd: Return a function that computes the PSD of the native celerite GP 
         at given frequencies.
     carma_sf: Return a function that computes the structure function of the 
-        specified CARMA process at given time lages.
+        specified CARMA process at given time lags.
+    drw_sf: Return a function that computes the structure function of the 
+        specified DRW process at given time lags.
     carma_acf: Return a function that computes the auto-correlation function of the 
-        specified CARMA process at given time lages.
+        specified CARMA process at given time lags.
+    drw_acf: Return a function that computes the auto-correlation function of the 
+        specified DRW process at given time lags.
 """
 import numpy as np
-from .CARMATerm import acf
+from .CARMATerm import acf, CARMA_term
 
 
 def drw_psd(amp, tau):
@@ -77,9 +81,55 @@ def gp_psd(carmaTerm):
 
     Args:
         carmaTerm (object): A celerite CARMA term.
+    Returns:
+        A function that takes in frequencies and returns PSD at the 
+            given frequencies.
     """
 
     def psd(f):
         return 2.5 * carmaTerm.get_psd(2 * np.pi * f)
 
     return psd
+
+
+def drw_acf(tau):
+    """Return a function that computes the model autocorrelation function.
+
+    Args:
+        tau (float): DRW decorrelation timescale.
+
+    Returns:
+        A function that takes in time lags and returns ACF at the given lags.
+    """
+    # convert to CARMA parameter
+    a0 = 1 / tau
+
+    def acf(lag):
+        return np.exp(-a0 * lag)
+
+    return acf
+
+
+def carma_acf(arparams, maparams):
+    """Return a function that computes the model autocorrelation function.
+
+    Args:
+        arparams (list): AR parameters in a list (or array-like)
+        maparams (list): MA parameters in a list (or array-like)
+
+    Returns:
+        A function that takes in time lags and returns ACF at the given lags.
+    """
+
+    autocorr = acf(arparams, maparams)
+    roots = np.roots(np.append([1], arparams))
+    gpTerm = CARMA_term(np.log(arparams), np.log(maparams))
+
+    def autocorr_func(lag):
+        R = 0
+        for i, r in enumerate(roots):
+            R += autocorr[i] * np.exp(r * lag)
+
+        return R / gpTerm.get_rms_amp() ** 2
+
+    return autocorr_func
