@@ -56,16 +56,6 @@ def test_carma():
     assert carma30b_coeffs[5].size == 1
     assert np.allclose(carma30b.get_rms_amp(), [0.38575837490522974])
 
-    # Compare CARMA_term to DHO_term
-    dho_term = DHO_term(np.log(2), np.log(1.2), np.log(1), np.log(3))
-    dho_coeffs = dho_term.get_all_coefficients()
-
-    carma21 = CARMA_term(np.log([2, 1.2]), np.log([1, 3]))
-    carma21_coeffs = carma21.get_all_coefficients()
-
-    assert np.allclose(np.concatenate(dho_coeffs), np.concatenate(carma21_coeffs))
-    assert np.allclose(dho_term.get_rms_amp(), carma21.get_rms_amp())
-
 
 def test_acf():
     # CARMA(2,0)

@@ -6,7 +6,7 @@ from math import ceil
 from scipy.optimize import differential_evolution, minimize
 from celerite import GP
 import celerite
-from agntk.carma.CARMATerm import *
+from agntk.carma.CARMATerm import DRW_term, DHO_term, CARMA_term
 from agntk.lc.utils import *
 
 
@@ -247,18 +247,14 @@ def carma_log_param_init(dim):
     return log_param
 
 
-def drw_fit(t, y, yerr, de=True, debug=False, plot=False, user_bounds=None):
+def drw_fit(t, y, yerr, debug=False, user_bounds=None):
     """Fix time series to DRW model
 
     Args:
         t (object): An array of time stamps in days.
         y (object): An array of y values.
         yerr (object): An array of the errors in y values.
-        de (bool, optional): Whether to use differential_evolution as the 
-            optimizer. Defaults to True. 
         debug (bool, optional): Turn on/off debug mode. Defaults to False.
-        plot (bool, optional): Whether plot likelihood surface. 
-            Defaults to False.
         user_bounds (list, optional): Parameter boundaries for the optimizer. 
             Defaults to None.
 
@@ -301,71 +297,35 @@ def drw_fit(t, y, yerr, de=True, debug=False, plot=False, user_bounds=None):
         except celerite.solver.LinAlgError:
             gp.set_parameter_vector(drw_log_param_init(std))
 
-    if de:
-        # set bound based on LC std for amp
-        while rerun and (counter < 5):
-            counter += 1
-            r = differential_evolution(
-                neg_ll, bounds=bounds, args=(y, yerr, gp), maxiter=200
-            )
+    # set bound based on LC std for amp
+    while rerun and (counter < 5):
+        counter += 1
+        r = differential_evolution(
+            neg_ll, bounds=bounds, args=(y, yerr, gp), maxiter=200
+        )
 
-            if r.success:
-                succeded = True
-                best_fit[:] = np.exp(r.x)
+        if r.success:
+            succeded = True
+            best_fit[:] = np.exp(r.x)
 
-                if "jac" not in r.keys():
-                    rerun = False
-                else:
-                    jac_log = np.log10(np.dot(r.jac, r.jac) + 1e-8)
-
-                    # if positive jac, then increase bounds
-                    if jac_log > 0:
-                        bounds = [(x[0] - 1, x[1] + 1) for x in bounds]
-                    else:
-                        rerun = False
-
-                    # update best-fit if smaller jac found
-                    if jac_log < jac_log_rec:
-                        jac_log_rec = jac_log
-                        best_fit[:] = np.exp(r.x)
+            if "jac" not in r.keys():
+                rerun = False
             else:
-                bounds = [(x[0] - 1, x[1] + 1) for x in bounds]
-                gp.set_parameter_vector(drw_log_param_init(std))
+                jac_log = np.log10(np.dot(r.jac, r.jac) + 1e-8)
 
-    else:
-        initial_params = gp.get_parameter_vector()
-
-        while rerun and (counter < 5):
-            counter += 1
-            r = minimize(
-                neg_ll,
-                initial_params,
-                method="L-BFGS-B",
-                bounds=bounds,
-                args=(y, yerr, gp),
-            )
-            if r.success:
-                succeded = True
-                best_fit[:] = np.exp(r.x)
-
-                if "jac" not in r.keys():
-                    rerun = False
+                # if positive jac, then increase bounds
+                if jac_log > 0:
+                    bounds = [(x[0] - 1, x[1] + 1) for x in bounds]
                 else:
-                    jac_log = np.log10(np.dot(r.jac, r.jac) + 1e-8)
+                    rerun = False
 
-                    # if positive jac, then increase bounds
-                    if jac_log > 0:
-                        bounds = [(x[0] - 1, x[1] + 1) for x in bounds]
-                    else:
-                        rerun = False
-
-                    # update best-fit if smaller jac found
-                    if jac_log < jac_log_rec:
-                        jac_log_rec = jac_log
-                        best_fit[:] = np.exp(r.x)
-            else:
-                bounds = [(x[0] - 1, x[1] + 1) for x in bounds]
-                gp.set_parameter_vector(drw_log_param_init(std))
+                # update best-fit if smaller jac found
+                if jac_log < jac_log_rec:
+                    jac_log_rec = jac_log
+                    best_fit[:] = np.exp(r.x)
+        else:
+            bounds = [(x[0] - 1, x[1] + 1) for x in bounds]
+            gp.set_parameter_vector(drw_log_param_init(std))
 
     # If opitimizer never reached minima, assign nan
     if not succeded:
@@ -378,18 +338,14 @@ def drw_fit(t, y, yerr, de=True, debug=False, plot=False, user_bounds=None):
     return best_fit
 
 
-def dho_fit(t, y, yerr, debug=False, plot=False, user_bounds=None):
+def dho_fit(t, y, yerr, debug=False, user_bounds=None):
     """Fix time series to DHO model
 
     Args:
         t (object): An array of time stamps in days.
         y (object): An array of y values.
         yerr (object): An array of the errors in y values.
-        de (bool, optional): Whether to use differential_evolution as the 
-            optimizer. Defaults to True. 
         debug (bool, optional): Turn on/off debug mode. Defaults to False.
-        plot (bool, optional): Whether plot likelihood surface. 
-            Defaults to False.
         user_bounds (list, optional): Parameter boundaries for the optimizer. 
             Defaults to None.
 
@@ -469,7 +425,7 @@ def dho_fit(t, y, yerr, debug=False, plot=False, user_bounds=None):
     return best_fit
 
 
-def carma_fit(t, y, yerr, p, q, de=True, debug=False, plot=False, user_bounds=None):
+def carma_fit(t, y, yerr, p, q, de=True, debug=False, user_bounds=None):
     """Fix time series to all CARMA model
 
     Args:
@@ -481,8 +437,6 @@ def carma_fit(t, y, yerr, p, q, de=True, debug=False, plot=False, user_bounds=No
         de (bool, optional): Whether to use differential_evolution as the 
             optimizer. Defaults to True. 
         debug (bool, optional): Turn on/off debug mode. Defaults to False.
-        plot (bool, optional): Whether plot likelihood surface. 
-            Defaults to False.
         user_bounds (list, optional): Parameter boundaries for the optimizer. 
             Defaults to None.
 

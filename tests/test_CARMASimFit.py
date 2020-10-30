@@ -2,7 +2,7 @@
 """
 
 import numpy as np
-from agntk.carma.CARMATerm import *
+from agntk.carma.CARMATerm import DRW_term, DHO_term, CARMA_term
 from agntk.lc.carma import *
 from celerite import GP
 from joblib import Parallel, delayed
@@ -79,7 +79,7 @@ def test_dhoFit():
         t, y, yerr = gpSimRand(kernel, 200, 365 * 10.0, 1000, nLC=100, season=False)
         best_fit_dho = np.array(
             Parallel(n_jobs=-1)(
-                delayed(dho_fit)(t[i], y[i], yerr[i], 2, 0) for i in range(len(t))
+                delayed(dho_fit)(t[i], y[i], yerr[i]) for i in range(len(t))
             )
         )
 

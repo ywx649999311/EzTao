@@ -5,7 +5,8 @@ __all__ = ["acf", "DRW_term", "DHO_term", "CARMA_term"]
 
 
 def acf(arparam, maparam):
-    """Return CARMA ACF coefficients given model parameter in Brockwell et al. 2001 notation.
+    """Return CARMA ACF coefficients given model parameter in Brockwell et al. 
+    2001 notation.
 
     Args:
         arparam (list): AR parameters in a list (or array-like)
@@ -43,8 +44,7 @@ def acf(arparam, maparam):
 
 
 class DRW_term(terms.Term):
-    """
-    Damped Random Walk term with two parameters, 'log_sigma' and 'log_tau'.
+    """Damped Random Walk term.
     
     Args:
         log_sigma(float): Sigma is the standard deviation of the DRW process.
@@ -59,92 +59,20 @@ class DRW_term(terms.Term):
         return (np.exp(2 * log_sigma), 1 / np.exp(log_tau))
 
     def get_perturb_amp(self):
+        """Return the perturbing noise amplitude (b0)."""
         log_sigma, log_tau = self.get_parameter_vector()
 
         return np.exp((2 * log_sigma - np.log(1 / 2) - log_tau) / 2)
 
     def get_rms_amp(self):
+        """Return the amplitude of CARMA process."""
         log_sigma, log_tau = self.get_parameter_vector()
 
         return np.exp(log_sigma)
 
 
-class DHO_term(terms.Term):
-    """
-    Damped Harmonic Oscillator term with parameters: 'log_a1', 'log_a2', 
-    'log_b0' and 'log_b1'.
-    """
-
-    parameter_names = ("log_a1", "log_a2", "log_b0", "log_b1")
-
-    def get_real_coefficients(self, params):
-        log_a1, log_a2, log_b0, log_b1 = params
-
-        # params to normal scale
-        arpar = np.exp([log_a1, log_a2])
-        mapar = np.exp([log_b0, log_b1])
-
-        # get roots and acf
-        roots = np.roots(np.append([1], arpar))
-        self.acf = acf(arpar, mapar)
-
-        ar = []
-        cr = []
-
-        mask = np.iscomplex(roots)
-        acf_real = self.acf[~mask]
-        roots_real = roots[~mask]
-
-        for i in range(len(acf_real)):
-            ar.append(acf_real[i].real)
-            cr.append(-roots_real[i].real)
-        return (ar, cr)
-
-    def get_complex_coefficients(self, params):
-        log_a1, log_a2, log_b0, log_b1 = params
-
-        # params to normal scale
-        arpar = np.exp([log_a1, log_a2])
-        mapar = np.exp([log_b0, log_b1])
-
-        # get roots and acf
-        roots = np.roots(np.append([1], arpar))
-        self.acf = acf(arpar, mapar)
-
-        ac = []
-        bc = []
-        cc = []
-        dc = []
-
-        mask = np.iscomplex(roots)
-        acf_complex = self.acf[mask]
-        roots_complex = roots[mask]
-
-        for i in range(len(acf_complex)):
-
-            # only take every other root/acf
-            if i % 2 == 0:
-                ac.append(2 * acf_complex[i].real)
-                bc.append(2 * acf_complex[i].imag)
-                cc.append(-roots_complex[i].real)
-                dc.append(-roots_complex[i].imag)
-
-        return (ac, bc, cc, dc)
-
-    def get_rms_amp(self):
-        """Return the amplitude of the underlying CARMA process 
-        (square root of the process variance)
-        """
-
-        # force to recompute acf
-        self.get_all_coefficients()
-
-        return np.sqrt(np.abs(np.sum(self.acf)))
-
-
 class CARMA_term(terms.Term):
-    """
-    General CARMA term with arbitray parameters.
+    """General CARMA term with arbitray parameters.
 
     Args:
         log_arpars (list): The logarithm of AR coefficients.
@@ -225,10 +153,23 @@ class CARMA_term(terms.Term):
         return (ac, bc, cc, dc)
 
     def get_rms_amp(self):
-        """Return the amplitude of the underlying CARMA process 
-        (square root of the process variance)
-        """
+        """Return the amplitude of CARMA process."""
         # force to recompute acf
         self.get_all_coefficients()
 
         return np.sqrt(np.abs(np.sum(self.acf)))
+
+
+class DHO_term(CARMA_term):
+    """Damped Harmonic Oscillator term.
+
+    Args:
+        log_a1 (float): The natual logarithm of DHO parameter a1.
+        log_a2 (float): The natual logarithm of DHO parameter a2.
+        log_b0 (float): The natual logarithm of DHO parameter b0.
+        log_b1 (float): The natual logarithm of DHO parameter b1.
+    """
+
+    def __init__(self, log_a1, log_a2, log_b0, log_b1, *args, **kwargs):
+        """Inits DHO term."""
+        super(DHO_term, self).__init__([log_a1, log_a2], [log_b0, log_b1], **kwargs)
