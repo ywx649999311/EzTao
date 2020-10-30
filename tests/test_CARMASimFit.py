@@ -19,7 +19,7 @@ test_kernels = [drw1, drw2, drw3, dho1, dho2, carma30a, carma30b]
 
 
 def test_simRand():
-
+    """Test function gpSimRand."""
     # SNR = 10
     for kernel in test_kernels:
         t, y, yerr = gpSimRand(kernel, 20, 365 * 10.0, 150, nLC=100, season=False)
@@ -38,6 +38,21 @@ def test_simRand():
 
 
 # test_simRand()
+
+
+def test_simByT():
+    """Test function gpSimByT."""
+    t = np.sort(np.random.uniform(0, 3650, 10000))
+    kernels = [drw1, dho1, carma30a]
+    nLC = 2
+    SNR = 20
+
+    for k in kernels:
+        amp = k.get_rms_amp()
+        y, yerr = gpSimByT(k, SNR, t, nLC=nLC)
+
+        assert (np.argsort(y - yerr) == np.argsort(np.abs(yerr))).all()
+        assert np.allclose(np.median(np.abs(yerr)), amp / SNR, rtol=0.3)
 
 
 def test_drwFit():
@@ -72,7 +87,7 @@ def test_dhoFit():
 
         # make sure half of the best-fits is reasonal based-on
         # previous simulations. (see LC_fit_fuctions.ipynb)
-        assert np.percentile(diff, 25) > -0.25
+        assert np.percentile(diff, 25) > -0.35
         assert np.percentile(diff, 75) < 0.1
 
 

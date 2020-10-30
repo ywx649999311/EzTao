@@ -15,7 +15,8 @@ def gpSimFull(carmaTerm, SNR, duration, N, nLC=1):
     Args:
         carmaTerm (object): celerite GP term.
         SNR (float): Signal to noise ratio defined as ratio between 
-            CARMA amplitude and the standard deviation of the errors.
+            CARMA amplitude and the mode of the errors (simulated using 
+            log normal).
         duration (float): The duration of the simulated time series in days.
         N (int): The number of data points.
         nLC (int, optional): Number of light curves to simulate. Defaults to 1.
@@ -24,7 +25,8 @@ def gpSimFull(carmaTerm, SNR, duration, N, nLC=1):
         Exception: If celerite cannot factorize after 10 trials.
 
     Returns:
-        Arrays: t, y and yerr of the simulated light curves in numpy arrays.
+        Arrays: t, y and yerr of the simulated light curves in numpy arrays. 
+            Note that errors are added to y.  
     """
 
     assert isinstance(
@@ -34,7 +36,9 @@ def gpSimFull(carmaTerm, SNR, duration, N, nLC=1):
     gp_sim = GP(carmaTerm)
 
     t = np.linspace(0, duration, N)
-    yerr = np.random.normal(0, carmaTerm.get_rms_amp() / SNR, N)
+    noise = carmaTerm.get_rms_amp() / SNR
+    yerr = np.random.lognormal(0, 0.25, N) * noise
+    yerr = yerr[np.argsort(np.abs(yerr))]
 
     # factor and factor_num to track factorization error
     factor = True
@@ -57,9 +61,14 @@ def gpSimFull(carmaTerm, SNR, duration, N, nLC=1):
                     + " covairance matrix, try again!"
                 )
 
+    # simulate, assign yerr based on y
     t = np.repeat(t[None, :], nLC, axis=0)
+    y = gp_sim.sample(size=nLC)
+
+    y_rank = y.argsort(axis=1).argsort(axis=1)
     yerr = np.repeat(yerr[None, :], nLC, axis=0)
-    y = gp_sim.sample(size=nLC) + yerr
+    yerr = np.array(list(map(lambda x, y: x[y], yerr, y_rank)))
+    y = y + yerr
 
     return t, y, yerr
 
@@ -70,7 +79,8 @@ def gpSimRand(carmaTerm, SNR, duration, N, nLC=1, season=True, full_N=10_000):
     Args:
         carmaTerm (object): celerite GP term.
         SNR (float): Signal to noise ratio defined as ratio between 
-            CARMA amplitude and the standard deviation of the errors.
+            CARMA amplitude and the mode of the errors (simulated using 
+            log normal).
         duration (float): The duration of the simulated time series in days.
         N (int): The number of data points in the returned light curves.
         nLC (int, optional): Number of light curves to simulate. Defaults to 1.
@@ -80,7 +90,8 @@ def gpSimRand(carmaTerm, SNR, duration, N, nLC=1, season=True, full_N=10_000):
             Defaults to 10_000.
 
     Returns:
-        Arrays: t, y and yerr of the simulated light curves in numpy arrays.
+        Arrays: t, y and yerr of the simulated light curves in numpy arrays. 
+            Note that errors are added to y.  
     """
 
     assert isinstance(
@@ -96,7 +107,10 @@ def gpSimRand(carmaTerm, SNR, duration, N, nLC=1, season=True, full_N=10_000):
 
     # downsample
     for i in range(nLC):
-        mask1 = add_season(t[i])
+        if season:
+            mask1 = add_season(t[i])
+        else:
+            mask1 = np.ones(len(t[i]), dtype=np.bool)
         mask2 = downsample_byN(t[i, mask1], N)
         t_out[i, :] = t[i, mask1][mask2]
         y_out[i, :] = y[i, mask1][mask2]
@@ -105,6 +119,73 @@ def gpSimRand(carmaTerm, SNR, duration, N, nLC=1, season=True, full_N=10_000):
     return t_out, y_out, yerr_out
 
 
+def gpSimByT(carmaTerm, SNR, t, nLC=1):
+    """Simulate CARMA time series given timestamps.
+
+    Args:
+        carmaTerm (object): celerite GP term.
+        SNR (float): Signal to noise ratio defined as ratio between 
+            CARMA amplitude and the mode of the errors (simulated using 
+            log normal).
+        t (int): Input timestamps.
+        nLC (int, optional): Number of light curves to simulate. Defaults to 1.
+
+    Returns:
+        Arrays: t, y and yerr of the simulated light curves in numpy arrays. 
+            Note that errors are added to y.  
+    """
+
+    assert isinstance(
+        carmaTerm, celerite.celerite.terms.Term
+    ), "carmaTerm must a celerite GP term"
+
+    gp_sim = GP(carmaTerm)
+
+    # make t start at zero; sort yerr based on yerr abs values
+    noise = carmaTerm.get_rms_amp() / SNR
+    t = t - t[0]
+    yerr = np.random.lognormal(0, 0.25, len(t)) * noise
+    yerr = yerr[np.argsort(np.abs(yerr))]
+
+    # factor and factor_num to track factorization error
+    factor = True
+    fact_num = 0
+    yerr_reg = 1.123e-12
+
+    while factor:
+        try:
+            gp_sim.compute(t, yerr_reg)
+            factor = False
+        except Exception:
+            # if error, try to re-init err_reg
+            yerr_reg += 1.123e-12
+
+            fact_num += 1
+            if fact_num > 10:
+                raise Exception(
+                    "Celerite cannot factorize the GP"
+                    + " covairance matrix, try again!"
+                )
+
+    # simulate, assign yerr based on y
+    t = np.repeat(t[None, :], nLC, axis=0)
+    y = gp_sim.sample(size=nLC)
+
+    # rearrange yerr
+    y_rank = y.argsort(axis=1).argsort(axis=1)
+    yerr = np.repeat(yerr[None, :], nLC, axis=0)
+    yerr = np.array(list(map(lambda x, y: x[y], yerr, y_rank)))
+
+    # add sign to yerr and add it to y
+    bd = np.random.binomial(1, 0.5, (nLC, t.shape[1]))
+    sign = np.where(bd > 0, 1, -1)
+    yerr = yerr * sign
+    y = y + yerr
+
+    return y, yerr
+
+
+## Below is about Fitting
 def neg_ll(params, y, yerr, gp):
     """CARMA neg log likelihood function.
     
