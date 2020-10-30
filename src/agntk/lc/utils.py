@@ -1,6 +1,6 @@
 import numpy as np
 
-__all__ = ["downsample_byN", "add_season"]
+__all__ = ["downsample_byN", "add_season", "downsample_byT"]
 
 
 def downsample_byN(t, nObs):
@@ -13,7 +13,6 @@ def downsample_byN(t, nObs):
     Returns:
         An mask of the original length to select data point.
     """
-
     # random choose index
     idx = np.arange(len(t))
     mask = np.zeros_like(idx, dtype=np.bool)
@@ -23,6 +22,22 @@ def downsample_byN(t, nObs):
     mask[true_idx] = 1
 
     return mask
+
+
+def downsample_byT(tIn, tOut):
+    """Downsample a light curve given the output timestamps.
+
+    Args:
+        tIn (object): Numpy array containing the timestamps of the original 
+            light curve.
+        tOut (object): Numpy array containing the timestamps of the ouput
+            light curve.
+
+    Returns:
+        An numpy array of indices, which can be used to select data points from
+            the original light curve.
+    """
+    return np.array(list(map(lambda x: (np.abs(tIn - x)).argmin(), tOut)))
 
 
 def add_season(t, lc_start=0, season_start=90, season_end=270):
@@ -37,7 +52,6 @@ def add_season(t, lc_start=0, season_start=90, season_end=270):
     Returns:
         An mask of the original length to select data point.
     """
-
     t = t - t[0]
     t = t + lc_start
 

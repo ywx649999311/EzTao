@@ -30,7 +30,7 @@ def test_simRand():
 
         assert np.percentile(err, 25) > np.log(0.5)
         assert np.percentile(err, 75) < np.log(1.2)
-        assert np.abs(np.median(err)) < 0.35
+        assert np.abs(np.median(err)) < 0.4
 
         # check returned dimension
         assert t.shape[1] == y.shape[1] == yerr.shape[1] == 150
@@ -43,16 +43,16 @@ def test_simRand():
 def test_simByT():
     """Test function gpSimByT."""
     t = np.sort(np.random.uniform(0, 3650, 5000))
-    kernels = [drw1, dho1]
+    kernels = [drw1, dho1, carma30a]
     nLC = 2
     SNR = 20
 
     for k in kernels:
         amp = k.get_rms_amp()
-        y, yerr = gpSimByT(k, SNR, t, nLC=nLC)
+        tOut, yOut, yerrOut = gpSimByT(k, SNR, t, nLC=nLC)
 
-        assert (np.argsort(y - yerr) == np.argsort(np.abs(yerr))).all()
-        assert np.allclose(np.median(np.abs(yerr)), amp / SNR, rtol=0.3)
+        assert (np.argsort(yOut - yerrOut) == np.argsort(np.abs(yerrOut))).all()
+        assert np.allclose(np.median(np.abs(yerrOut)), amp / SNR, rtol=0.2)
 
 
 def test_drwFit():

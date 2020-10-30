@@ -2,6 +2,7 @@
 """
 
 import numpy as np
+from math import ceil
 from scipy.optimize import differential_evolution, minimize
 from celerite import GP
 import celerite
@@ -74,7 +75,7 @@ def gpSimFull(carmaTerm, SNR, duration, N, nLC=1):
 
 
 def gpSimRand(carmaTerm, SNR, duration, N, nLC=1, season=True, full_N=10_000):
-    """Simulate downsampled CARMA time series.
+    """Simulate randomly downsampled CARMA time series.
 
     Args:
         carmaTerm (object): celerite GP term.
@@ -93,17 +94,12 @@ def gpSimRand(carmaTerm, SNR, duration, N, nLC=1, season=True, full_N=10_000):
         Arrays: t, y and yerr of the simulated light curves in numpy arrays. 
             Note that errors are added to y.  
     """
-
-    assert isinstance(
-        carmaTerm, celerite.celerite.terms.Term
-    ), "carmaTerm must a celerite GP term"
-
     t, y, yerr = gpSimFull(carmaTerm, SNR, duration, full_N, nLC=nLC)
 
     # output t & yerr
-    t_out = np.empty((nLC, N))
-    y_out = np.empty((nLC, N))
-    yerr_out = np.empty((nLC, N))
+    tOut = np.empty((nLC, N))
+    yOut = np.empty((nLC, N))
+    yerrOut = np.empty((nLC, N))
 
     # downsample
     for i in range(nLC):
@@ -112,15 +108,20 @@ def gpSimRand(carmaTerm, SNR, duration, N, nLC=1, season=True, full_N=10_000):
         else:
             mask1 = np.ones(len(t[i]), dtype=np.bool)
         mask2 = downsample_byN(t[i, mask1], N)
-        t_out[i, :] = t[i, mask1][mask2]
-        y_out[i, :] = y[i, mask1][mask2]
-        yerr_out[i, :] = yerr[i, mask1][mask2]
+        tOut[i, :] = t[i, mask1][mask2]
+        yOut[i, :] = y[i, mask1][mask2]
+        yerrOut[i, :] = yerr[i, mask1][mask2]
 
-    return t_out, y_out, yerr_out
+    return tOut, yOut, yerrOut
 
 
-def gpSimByT(carmaTerm, SNR, t, nLC=1):
-    """Simulate CARMA time series given timestamps.
+def gpSimByT(carmaTerm, SNR, t, factor=10, nLC=1):
+    """Simulate CARMA time series at the provided timestamps.
+
+    This function uses a 'factor' parameter to determine the sampling rate
+    of the initial(full) time series to simulate and downsample from. For 
+    example, if 'factor' = 10, then the initial time series will be 10 times 
+    denser than the median sampling rate of the provided timestamps.
 
     Args:
         carmaTerm (object): celerite GP term.
@@ -128,61 +129,30 @@ def gpSimByT(carmaTerm, SNR, t, nLC=1):
             CARMA amplitude and the mode of the errors (simulated using 
             log normal).
         t (int): Input timestamps.
+        factor (int, optional): Paramter to control the ratio in the sampling 
+            ratebetween the simulated full time series and the desired output. 
+            Defaults to 10.
         nLC (int, optional): Number of light curves to simulate. Defaults to 1.
 
     Returns:
         Arrays: t, y and yerr of the simulated light curves in numpy arrays. 
-            Note that errors are added to y.  
+            Note that errors are added to y. 
     """
+    # get number points in full LC based on desired cadence
+    duration = ceil(t[-1] - t[0])
+    N = 10 * ceil(duration / np.median(t[1:] - t[:-1]))
 
-    assert isinstance(
-        carmaTerm, celerite.celerite.terms.Term
-    ), "carmaTerm must a celerite GP term"
+    # simulate full LC
+    tFull, yFull, yerrFull = gpSimFull(carmaTerm, SNR, duration, N=N, nLC=nLC)
 
-    gp_sim = GP(carmaTerm)
+    # downsample by desired output cadence
+    t_expand = np.repeat(t[None, :], nLC, axis=0)
+    tOut_idx = np.array(list(map(downsample_byT, tFull, t_expand)))
+    tOut = np.array(list(map(lambda x, y: x[y], tFull, tOut_idx)))
+    yOut = np.array(list(map(lambda x, y: x[y], yFull, tOut_idx)))
+    yerrOut = np.array(list(map(lambda x, y: x[y], yerrFull, tOut_idx)))
 
-    # make t start at zero; sort yerr based on yerr abs values
-    noise = carmaTerm.get_rms_amp() / SNR
-    t = t - t[0]
-    yerr = np.random.lognormal(0, 0.25, len(t)) * noise
-    yerr = yerr[np.argsort(np.abs(yerr))]
-
-    # factor and factor_num to track factorization error
-    factor = True
-    fact_num = 0
-    yerr_reg = 1.123e-12
-
-    while factor:
-        try:
-            gp_sim.compute(t, yerr_reg)
-            factor = False
-        except Exception:
-            # if error, try to re-init err_reg
-            yerr_reg += 1.123e-12
-
-            fact_num += 1
-            if fact_num > 10:
-                raise Exception(
-                    "Celerite cannot factorize the GP"
-                    + " covairance matrix, try again!"
-                )
-
-    # simulate, assign yerr based on y
-    t = np.repeat(t[None, :], nLC, axis=0)
-    y = gp_sim.sample(size=nLC)
-
-    # rearrange yerr
-    y_rank = y.argsort(axis=1).argsort(axis=1)
-    yerr = np.repeat(yerr[None, :], nLC, axis=0)
-    yerr = np.array(list(map(lambda x, y: x[y], yerr, y_rank)))
-
-    # add sign to yerr and add it to y
-    bd = np.random.binomial(1, 0.5, (nLC, t.shape[1]))
-    sign = np.where(bd > 0, 1, -1)
-    yerr = yerr * sign
-    y = y + yerr
-
-    return y, yerr
+    return tOut, yOut, yerrOut
 
 
 ## Below is about Fitting
