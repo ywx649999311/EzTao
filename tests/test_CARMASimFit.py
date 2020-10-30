@@ -42,8 +42,8 @@ def test_simRand():
 
 def test_simByT():
     """Test function gpSimByT."""
-    t = np.sort(np.random.uniform(0, 3650, 10000))
-    kernels = [drw1, dho1, carma30a]
+    t = np.sort(np.random.uniform(0, 3650, 5000))
+    kernels = [drw1, dho1]
     nLC = 2
     SNR = 20
 

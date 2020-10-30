@@ -51,7 +51,7 @@ def gpSimFull(carmaTerm, SNR, duration, N, nLC=1):
             factor = False
         except Exception:
             # if error, try to re-init t and yerr_reg
-            t = np.linspace(0, duration, N)
+            # t = np.linspace(0, duration, N)
             yerr_reg += 1.123e-12
 
             fact_num += 1
