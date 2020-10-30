@@ -22,7 +22,7 @@ def test_simRand():
 
     # SNR = 10
     for kernel in test_kernels:
-        t, y, yerr = gpSimRand(kernel, 10, 365 * 10.0, 150, nLC=100, season=False)
+        t, y, yerr = gpSimRand(kernel, 20, 365 * 10.0, 150, nLC=100, season=False)
         log_amp = np.log(kernel.get_rms_amp())
 
         # compute error in log space
@@ -61,7 +61,7 @@ def test_drwFit():
 def test_dhoFit():
 
     for kernel in [dho1, dho2]:
-        t, y, yerr = gpSimRand(kernel, 50, 365 * 10.0, 1000, nLC=100, season=False)
+        t, y, yerr = gpSimRand(kernel, 200, 365 * 10.0, 1000, nLC=100, season=False)
         best_fit_dho = np.array(
             Parallel(n_jobs=-1)(
                 delayed(dho_fit)(t[i], y[i], yerr[i], 2, 0) for i in range(len(t))
@@ -70,9 +70,10 @@ def test_dhoFit():
 
         diff = np.log(best_fit_dho[:, -1]) - kernel.parameter_vector[-1]
 
-        # make sure half of the best-fits within +/- 20% of the truth
-        assert np.percentile(diff, 25) > np.log(0.8)
-        assert np.percentile(diff, 75) < np.log(1.2)
+        # make sure half of the best-fits is reasonal based-on
+        # previous simulations. (see LC_fit_fuctions.ipynb)
+        assert np.percentile(diff, 25) > -0.25
+        assert np.percentile(diff, 75) < 0.1
 
 
 def test_carmaFit():
@@ -81,7 +82,7 @@ def test_carmaFit():
     carma20b = CARMA_term(np.log([0.08, 0.00027941]), np.log([0.046724]))
 
     for kernel in [carma20a, carma20b]:
-        t, y, yerr = gpSimRand(kernel, 50, 365 * 10.0, 500, nLC=100, season=False)
+        t, y, yerr = gpSimRand(kernel, 100, 365 * 10.0, 500, nLC=100, season=False)
         best_fit_carma = np.array(
             Parallel(n_jobs=-1)(
                 delayed(carma_fit)(t[i], y[i], yerr[i], 2, 0) for i in range(len(t))
@@ -90,7 +91,8 @@ def test_carmaFit():
 
         diff = np.log(best_fit_carma[:, -1]) - kernel.parameter_vector[-1]
 
-        # make sure half of the best-fits within +/- 20% of the truth
-        assert np.percentile(diff, 25) > np.log(0.8)
-        assert np.percentile(diff, 75) < np.log(1.2)
+        # make sure half of the best-fits is reasonal based-on
+        # previous simulations. (see LC_fit_fuctions.ipynb)
+        assert np.percentile(diff, 25) > -0.35
+        assert np.percentile(diff, 75) < 0.1
 
