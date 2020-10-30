@@ -21,7 +21,7 @@ from .CARMATerm import acf, CARMA_term
 
 
 def drw_psd(amp, tau):
-    """Return a function that computes DRW Power Spectral Density.
+    """Return a function that computes DRW Power Spectral Density (PSD).
 
     Args:
         amp (float): DRW amplitude
@@ -43,7 +43,7 @@ def drw_psd(amp, tau):
 
 
 def carma_psd(arparams, maparams):
-    """Return a function that computes Power Spectral Density.
+    """Return a function that computes Power Spectral Density (PSD).
 
     Args:
         arparams (object): Numpy array containing AR parameters.
@@ -77,7 +77,7 @@ def carma_psd(arparams, maparams):
 
 
 def gp_psd(carmaTerm):
-    """Return a function that computes native GP PSD.
+    """Return a function that computes native GP Power Spectral Density (PSD).
 
     Args:
         carmaTerm (object): A celerite CARMA term.
@@ -93,7 +93,7 @@ def gp_psd(carmaTerm):
 
 
 def drw_acf(tau):
-    """Return a function that computes the model autocorrelation function.
+    """Return a function that computes the DRW autocorrelation function (ACF).
 
     Args:
         tau (float): DRW decorrelation timescale.
@@ -111,7 +111,7 @@ def drw_acf(tau):
 
 
 def carma_acf(arparams, maparams):
-    """Return a function that computes the model autocorrelation function.
+    """Return a function that computes the model autocorrelation function (ACF).
 
     Args:
         arparams (list): AR parameters in a list (or array-like)
@@ -133,3 +133,39 @@ def carma_acf(arparams, maparams):
         return R / gpTerm.get_rms_amp() ** 2
 
     return autocorr_func
+
+
+def drw_sf(amp, tau):
+    """Return a function that computes the structure function (SF) of DRW.
+
+    Args:
+        amp (float): DRW variability amplitude
+        tau (float): DRW decorrelation timescale.
+
+    Returns:
+        A function that takes in time lags and returns SF at the given lags.
+    """
+
+    def sf(lag):
+        return np.sqrt(amp ** 2 * (1 - drw_acf(tau)(lag)))
+
+    return sf
+
+
+def carma_sf(arparams, maparams):
+    """Return a function that computes the CARMA structure function (SF).
+
+    Args:
+        arparams (list): AR parameters in a list (or array-like)
+        maparams (list): MA parameters in a list (or array-like)
+
+    Returns:
+        A function that takes in time lags and returns SF at the given lags.
+    """
+    gpTerm = CARMA_term(np.log(arparams), np.log(maparams))
+    amp2 = gpTerm.get_rms_amp() ** 2
+
+    def sf(lag):
+        return np.sqrt(amp2 * (1 - carma_acf(arparams, maparams)(lag)))
+
+    return sf
