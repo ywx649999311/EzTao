@@ -14,15 +14,16 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
+      - name: Setup python
       - uses: actions/setup-python@v2
         with:
-          version: 1.14
-          virtualenvs-create: true
-          virtualenvs-in-project: true
+          python-version: ${{ matrix.python-version }}
       - name: Install and configure Poetry
         uses: snok/install-poetry@v1.0.0
         with:
-          poetry-version: ${{ matrix.poetry-version }}
+          version: 1.1.4
+          virtualenvs-create: true
+          virtualenvs-in-project: true
       - name: Load cached venv
         id: cached-poetry-dependencies
         uses: actions/cache@v2
