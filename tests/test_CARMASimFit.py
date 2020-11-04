@@ -51,6 +51,7 @@ def test_simByT():
         amp = k.get_rms_amp()
         tOut, yOut, yerrOut = gpSimByT(k, SNR, t, nLC=nLC)
 
+        assert tOut.shape == (nLC, len(t))
         assert (np.argsort(yOut - yerrOut) == np.argsort(np.abs(yerrOut))).all()
         assert np.allclose(np.median(np.abs(yerrOut)), amp / SNR, rtol=0.2)
 

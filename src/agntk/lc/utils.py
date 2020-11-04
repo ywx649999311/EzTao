@@ -7,8 +7,8 @@ def downsample_byN(t, nObs):
     """Utility function to randomly choose N observation from a given light curves
     
     Args:
-        t(array_like): Time stamp of observations in the original light curve.
-        N(int): The number of observations in the final light curve.
+        t (array_like): Time stamp of observations in the original light curve.
+        N (int): The number of observations in the final light curve.
 
     Returns:
         An mask of the original length to select data point.
@@ -25,7 +25,7 @@ def downsample_byN(t, nObs):
 
 
 def downsample_byT(tIn, tOut):
-    """Downsample a light curve given the output timestamps.
+    """Find the indices of a downsampled light curve given output timestamps.
 
     Args:
         tIn (object): Numpy array containing the timestamps of the original 
@@ -44,10 +44,10 @@ def add_season(t, lc_start=0, season_start=90, season_end=270):
     """Utility function to impose seasonal gap in mock light curves
     
     Args:
-        t(array_like): Time stamp of observations in a light curve.
-        lc_start(float): Light curve starting day within a year (0 -> 365.25). Default to 0.
-        season_start(float): Observing season start day within a year. Default to 90.
-        season_end(float): Observing season end day within a year. Default to 270.
+        t (array_like): Time stamp of observations in a light curve.
+        lc_start (float): Light curve starting day within a year (0 -> 365.25). Default to 0.
+        season_start (float): Observing season start day within a year. Default to 90.
+        season_end (float): Observing season end day within a year. Default to 270.
 
     Returns:
         An mask of the original length to select data point.
