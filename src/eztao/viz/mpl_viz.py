@@ -4,13 +4,7 @@ import numpy as np
 import celerite
 from ..carma.CARMATerm import *
 
-try:
-    mpl.rc_file(
-        "https://raw.githubusercontent.com/ywx649999311/project_template"
-        "/master/%7B%7Bcookiecutter.project_name%7D%7D/src/vis/mpl/yu_basic.rc"
-    )
-except:
-    mpl.rc_file("agntk.rc")
+mpl.rc_file("eztao.rc")
 
 
 def plot_drw_ll(

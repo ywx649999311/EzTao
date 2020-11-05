@@ -1,4 +1,4 @@
-from agntk.carma.CARMATerm import *
+from eztao.carma.CARMATerm import *
 import numpy as np
 
 # def test_0():

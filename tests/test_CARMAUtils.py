@@ -1,6 +1,6 @@
 import numpy as np
-from agntk.carma.CARMATerm import DRW_term, DHO_term, CARMA_term
-from agntk.carma.utils import *
+from eztao.carma import DRW_term, DHO_term, CARMA_term
+from eztao.carma.model_utils import *
 
 # init kernels
 drw1 = DRW_term(np.log(0.35), np.log(100))

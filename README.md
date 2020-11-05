@@ -1,13 +1,5 @@
-## agnTk
-**agntk** stands for **A**ctive **G**alactic **N**ucleus (AGN) **T**ime-Series Analysis Tool**k**it. It is a toolkit for conducting AGN time-series/variability analysis, mainly utilizing the continuous-time auto-regressive moving average model (CARMA)
-
-<span style='color:red'>__Note:__</span> The notebooks associated with the code development have been moved to the `dev` branch. 
-
-### Installation
-pip distribution will be available soon. At this moment, you need to clone this repo and perform install with:
-```
-pip install -e .
-```
+## EzTao (易道)
+**EzTao** is a toolkit for conducting AGN time-series/variability analysis, mainly utilizing the continuous-time auto-regressive moving average model (CARMA)
 
 ### Development
 `poetry` is used to solve dependencies and to build/publish this package. Below shows how setup the environment for development (assuming you already have `poetry` installed on your machine). 
@@ -18,7 +10,7 @@ pip install -e .
     python -m venv env
     source env/bin/activate
     ```
-3. Install dependencies and **agnTk** in editable mode.
+3. Install dependencies and **EzTao** in editable mode.
    ```
    poetry install
    ```

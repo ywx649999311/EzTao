@@ -2,8 +2,8 @@
 """
 
 import numpy as np
-from agntk.carma.CARMATerm import DRW_term, DHO_term, CARMA_term
-from agntk.lc.carma import *
+from eztao.carma import DRW_term, DHO_term, CARMA_term
+from eztao.ts.carma import *
 from celerite import GP
 from joblib import Parallel, delayed
 
@@ -38,8 +38,6 @@ def test_simRand():
 
 
 # test_simRand()
-
-
 def test_simByT():
     """Test function gpSimByT."""
     t = np.sort(np.random.uniform(0, 3650, 5000))
