@@ -66,12 +66,15 @@ def gpSimFull(carmaTerm, SNR, duration, N, nLC=1):
     t = np.repeat(t[None, :], nLC, axis=0)
     y = gp_sim.sample(size=nLC)
 
+    # format yerr
     y_rank = y.argsort(axis=1).argsort(axis=1)
     yerr = np.repeat(yerr[None, :], nLC, axis=0)
     yerr = np.array(list(map(lambda x, y: x[y], yerr, y_rank)))
-    y = y + yerr
+    yerr_sign = np.random.binomial(1, 0.5, yerr.shape)
+    yerr_sign[yerr_sign < 1] = -1
+    yerr = yerr * yerr_sign
 
-    return t, y, yerr
+    return t, y + yerr, yerr
 
 
 def gpSimRand(carmaTerm, SNR, duration, N, nLC=1, season=True, full_N=10_000):

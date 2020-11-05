@@ -52,6 +52,7 @@ def test_simByT():
         tOut, yOut, yerrOut = gpSimByT(k, SNR, t, nLC=nLC)
 
         assert tOut.shape == (nLC, len(t))
+        assert np.sum(yOut[0] < 0) > 0
         assert (np.argsort(yOut - yerrOut) == np.argsort(np.abs(yerrOut))).all()
         assert np.allclose(np.median(np.abs(yerrOut)), amp / SNR, rtol=0.2)
 
