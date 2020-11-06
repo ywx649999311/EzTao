@@ -28,8 +28,8 @@ def gpSimFull(carmaTerm, SNR, duration, N, nLC=1):
 
     Args:
         carmaTerm (object): celerite GP term.
-        SNR (float): Signal to noise ratio defined as ratio between 
-            CARMA amplitude and the mode of the errors (simulated using 
+        SNR (float): Signal to noise ratio defined as ratio between
+            CARMA amplitude and the mode of the errors (simulated using
             log normal).
         duration (float): The duration of the simulated time series in days.
         N (int): The number of data points.
@@ -39,8 +39,8 @@ def gpSimFull(carmaTerm, SNR, duration, N, nLC=1):
         Exception: If celerite cannot factorize after 10 trials.
 
     Returns:
-        Arrays: t, y and yerr of the simulated light curves in numpy arrays. 
-            Note that errors are added to y.  
+        Arrays: t, y and yerr of the simulated light curves in numpy arrays.
+            Note that errors are added to y.
     """
 
     assert isinstance(
@@ -95,20 +95,20 @@ def gpSimRand(carmaTerm, SNR, duration, N, nLC=1, season=True, full_N=10_000):
 
     Args:
         carmaTerm (object): celerite GP term.
-        SNR (float): Signal to noise ratio defined as ratio between 
-            CARMA amplitude and the mode of the errors (simulated using 
+        SNR (float): Signal to noise ratio defined as ratio between
+            CARMA amplitude and the mode of the errors (simulated using
             log normal).
         duration (float): The duration of the simulated time series in days.
         N (int): The number of data points in the returned light curves.
         nLC (int, optional): Number of light curves to simulate. Defaults to 1.
-        season (bool, optional): Whether to simulate seasonal gaps. 
+        season (bool, optional): Whether to simulate seasonal gaps.
             Defaults to True.
-        full_N (int, optional): The number of data points the full light curves. 
+        full_N (int, optional): The number of data points the full light curves.
             Defaults to 10_000.
 
     Returns:
-        Arrays: t, y and yerr of the simulated light curves in numpy arrays. 
-            Note that errors are added to y.  
+        Arrays: t, y and yerr of the simulated light curves in numpy arrays.
+            Note that errors are added to y.
     """
     t, y, yerr = gpSimFull(carmaTerm, SNR, duration, full_N, nLC=nLC)
 
@@ -135,24 +135,24 @@ def gpSimByT(carmaTerm, SNR, t, factor=10, nLC=1):
     """Simulate CARMA time series at the provided timestamps.
 
     This function uses a 'factor' parameter to determine the sampling rate
-    of the initial(full) time series to simulate and downsample from. For 
-    example, if 'factor' = 10, then the initial time series will be 10 times 
+    of the initial(full) time series to simulate and downsample from. For
+    example, if 'factor' = 10, then the initial time series will be 10 times
     denser than the median sampling rate of the provided timestamps.
 
     Args:
         carmaTerm (object): celerite GP term.
-        SNR (float): Signal to noise ratio defined as ratio between 
-            CARMA amplitude and the mode of the errors (simulated using 
+        SNR (float): Signal to noise ratio defined as ratio between
+            CARMA amplitude and the mode of the errors (simulated using
             log normal).
         t (int): Input timestamps.
-        factor (int, optional): Paramter to control the ratio in the sampling 
-            ratebetween the simulated full time series and the desired output. 
+        factor (int, optional): Paramter to control the ratio in the sampling
+            ratebetween the simulated full time series and the desired output.
             Defaults to 10.
         nLC (int, optional): Number of light curves to simulate. Defaults to 1.
 
     Returns:
-        Arrays: t, y and yerr of the simulated light curves in numpy arrays. 
-            Note that errors are added to y. 
+        Arrays: t, y and yerr of the simulated light curves in numpy arrays.
+            Note that errors are added to y.
     """
     # get number points in full LC based on desired cadence
     duration = ceil(t[-1] - t[0])
@@ -174,8 +174,8 @@ def gpSimByT(carmaTerm, SNR, t, factor=10, nLC=1):
 ## Below is about Fitting
 def neg_ll(params, y, yerr, gp):
     """CARMA neg log likelihood function.
-    
-    This method will catch 'overflow/underflow' runtimeWarning and 
+
+    This method will catch 'overflow/underflow' runtimeWarning and
     return -inf as probablility.
 
     Args:
@@ -221,7 +221,7 @@ def neg_ll(params, y, yerr, gp):
 
 def drw_log_param_init(std):
     """Randomly generate DRW parameters.
-    
+
     Args:
         std (float): The std of the LC to fit.
     Returns:
@@ -251,7 +251,7 @@ def dho_log_param_init():
 
 def carma_log_param_init(dim):
     """Randomly generate DHO parameters from [-8, 1] in log.
-    
+
     Args:
         dim (int): For a CARMA(p,q) model, dim=p+q+1.
     Returns:
@@ -271,10 +271,10 @@ def _de_opt(y, yerr, best_fit, gp, init_func, debug, bounds):
         y (object): An array of y values.
         best_fit (object): An empty array to store best fit parameters.
         gp (object): celerite GP model object.
-        init_func ([type]): CARMA parameter initialization function, 
+        init_func ([type]): CARMA parameter initialization function,
             i.e. drw_log_param_init.
         debug (bool, optional): Turn on/off debug mode.
-        bounds (list): Initial parameter boundaries for the optimizer. 
+        bounds (list): Initial parameter boundaries for the optimizer.
 
     Returns:
         object: An array of best-fit parameters
@@ -335,11 +335,11 @@ def _min_opt(y, yerr, best_fit, gp, init_func, debug, bounds, method="L-BFGS-B")
         y (object): An array of y values.
         best_fit (object): An empty array to store best fit parameters.
         gp (object): celerite GP model object.
-        init_func ([type]): CARMA parameter initialization function, 
+        init_func ([type]): CARMA parameter initialization function,
             i.e. drw_log_param_init.
         debug (bool, optional): Turn on/off debug mode.
-        bounds (list): Initial parameter boundaries for the optimizer. 
-        method (str): Likelihood optimization method. 
+        bounds (list): Initial parameter boundaries for the optimizer.
+        method (str): Likelihood optimization method.
 
     Returns:
         object: An array of best-fit parameters
@@ -356,7 +356,11 @@ def _min_opt(y, yerr, best_fit, gp, init_func, debug, bounds, method="L-BFGS-B")
     while rerun and (run_ct < 5):
         run_ct += 1
         r = minimize(
-            neg_ll, initial_params, method=method, bounds=bounds, args=(y, yerr, gp),
+            neg_ll,
+            initial_params,
+            method=method,
+            bounds=bounds,
+            args=(y, yerr, gp),
         )
         if r.success:
             succeded = True
@@ -400,7 +404,7 @@ def drw_fit(t, y, yerr, debug=False, user_bounds=None):
         y (object): An array of y values.
         yerr (object): An array of the errors in y values.
         debug (bool, optional): Turn on/off debug mode. Defaults to False.
-        user_bounds (list, optional): Parameter boundaries for the optimizer. 
+        user_bounds (list, optional): Parameter boundaries for the optimizer.
             Defaults to None.
 
     Returns:
@@ -438,7 +442,13 @@ def drw_fit(t, y, yerr, debug=False, user_bounds=None):
             gp.set_parameter_vector(drw_log_param_init(std))
 
     best_fit_return = _de_opt(
-        y, yerr, best_fit, gp, lambda: drw_log_param_init(std), debug, bounds,
+        y,
+        yerr,
+        best_fit,
+        gp,
+        lambda: drw_log_param_init(std),
+        debug,
+        bounds,
     )
 
     return best_fit_return
@@ -452,7 +462,7 @@ def dho_fit(t, y, yerr, debug=False, user_bounds=None):
         y (object): An array of y values.
         yerr (object): An array of the errors in y values.
         debug (bool, optional): Turn on/off debug mode. Defaults to False.
-        user_bounds (list, optional): Parameter boundaries for the optimizer. 
+        user_bounds (list, optional): Parameter boundaries for the optimizer.
             Defaults to None.
 
     Returns:
@@ -487,7 +497,13 @@ def dho_fit(t, y, yerr, debug=False, user_bounds=None):
             gp.set_parameter_vector(dho_log_param_init())
 
     best_fit_return = _de_opt(
-        y, yerr, best_fit, gp, lambda: dho_log_param_init(), debug, bounds,
+        y,
+        yerr,
+        best_fit,
+        gp,
+        lambda: dho_log_param_init(),
+        debug,
+        bounds,
     )
 
     return best_fit_return
@@ -502,10 +518,10 @@ def carma_fit(t, y, yerr, p, q, de=True, debug=False, user_bounds=None):
         yerr (object): An array of the errors in y values.
         p (int): P order of a CARMA(p, q) model.
         q (int): Q order of a CARMA(p, q) model.
-        de (bool, optional): Whether to use differential_evolution as the 
-            optimizer. Defaults to True. 
+        de (bool, optional): Whether to use differential_evolution as the
+            optimizer. Defaults to True.
         debug (bool, optional): Turn on/off debug mode. Defaults to False.
-        user_bounds (list, optional): Parameter boundaries for the optimizer. 
+        user_bounds (list, optional): Parameter boundaries for the optimizer.
             Defaults to None.
 
     Returns:
@@ -544,11 +560,23 @@ def carma_fit(t, y, yerr, p, q, de=True, debug=False, user_bounds=None):
 
     if de:
         best_fit_return = _de_opt(
-            y, yerr, best_fit, gp, lambda: carma_log_param_init(dim), debug, bounds,
+            y,
+            yerr,
+            best_fit,
+            gp,
+            lambda: carma_log_param_init(dim),
+            debug,
+            bounds,
         )
     else:
         best_fit_return = _min_opt(
-            y, yerr, best_fit, gp, lambda: carma_log_param_init(dim), debug, bounds,
+            y,
+            yerr,
+            best_fit,
+            gp,
+            lambda: carma_log_param_init(dim),
+            debug,
+            bounds,
         )
 
     return best_fit_return

@@ -14,7 +14,7 @@ drw3 = DRW_term(np.log(0.25), np.log(800))
 dho1 = DHO_term(np.log(0.04), np.log(0.0027941), np.log(0.004672), np.log(0.0257))
 dho2 = DHO_term(np.log(0.06), np.log(0.0001), np.log(0.0047), np.log(0.0157))
 carma30a = CARMA_term(np.log([3, 2.8, 0.8]), np.log([1]))
-carma30b = CARMA_term(np.log([3, 3.2, 1.2]), np.log([1]))
+carma30b = CARMA_term(np.log([3, 3.189, 1.2]), np.log([1]))
 test_kernels = [drw1, drw2, drw3, dho1, dho2, carma30a, carma30b]
 
 
@@ -41,7 +41,7 @@ def test_simRand():
 def test_simByT():
     """Test function gpSimByT."""
     t = np.sort(np.random.uniform(0, 3650, 5000))
-    kernels = [drw1, dho1, carma30a]
+    kernels = [drw1, dho1, carma30b]
     nLC = 2
     SNR = 20
 
@@ -110,4 +110,3 @@ def test_carmaFit():
         # previous simulations. (see LC_fit_fuctions.ipynb)
         assert np.percentile(diff, 25) > -0.35
         assert np.percentile(diff, 75) < 0.1
-

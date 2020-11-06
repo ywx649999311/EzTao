@@ -1,34 +1,47 @@
 import numpy as np
 from celerite import terms
+from numba import njit, float64, complex128, int32
 
 __all__ = ["acf", "DRW_term", "DHO_term", "CARMA_term"]
 
 
+@njit(complex128[:](complex128[:]))
+def _compute_roots(coeffs):
+    """Internal jitted function to compute roots"""
+
+    # find roots using np and make roots that are almost real real
+    roots = np.roots(coeffs)
+    roots[np.abs(roots.imag) < 1e-10] = roots[np.abs(roots.imag) < 1e-10].real
+
+    return roots
+
+
+@njit(complex128[:](float64[:], float64[:]))
 def acf(arparam, maparam):
-    """Return CARMA ACF coefficients given model parameter in Brockwell et al. 
+    """Return CARMA ACF coefficients given model parameter in Brockwell et al.
     2001 notation.
 
     Args:
-        arparam (list): AR parameters in a list (or array-like)
-        maparam (list): MA parameters in a list (or array-like)
+        arparam (object): AR parameters in a numpy array
+        maparam (object): MA parameters in a numpy array
 
     Returns:
         ACF coefficients in an array, each element correspond to a root
     """
-    p = len(arparam)
-    q = len(maparam) - 1
+    p = arparam.shape[0]
+    q = maparam.shape[0] - 1
     sigma = maparam[0]
 
     # MA param into Kell's notation
-    arparam = np.array(arparam)
+    # arparam = np.array(arparam)
     maparam = np.array([x / sigma for x in maparam])
 
     # get roots
-    arroots = np.roots(np.append([1], arparam))
+    arroots = _compute_roots(np.append([1 + 0j], arparam))
 
     # init acf product terms
-    num_left = 0
-    num_right = 0
+    num_left = np.zeros(p, dtype=np.complex128)
+    num_right = np.zeros(p, dtype=np.complex128)
     denom = -2 * arroots.real + np.zeros_like(arroots) * 1j
 
     for k in range(q + 1):
@@ -45,7 +58,7 @@ def acf(arparam, maparam):
 
 class DRW_term(terms.Term):
     """Damped Random Walk term.
-    
+
     Args:
         log_sigma(float): Sigma is the standard deviation of the DRW process.
         log_tau(float): Tau is the characteristic timescale of the DRW process.
@@ -109,7 +122,7 @@ class CARMA_term(terms.Term):
         # get roots and acf
         self.arpars = np.exp(params[: self.p])
         self.mapars = np.exp(params[self.p :])
-        roots = np.roots(np.append([1], self.arpars))
+        roots = _compute_roots(np.append([1 + 0j], self.arpars))
         self.acf = acf(self.arpars, self.mapars)
 
         ar = []
@@ -129,7 +142,7 @@ class CARMA_term(terms.Term):
         # get roots and acf
         self.arpars = np.exp(params[: self.p])
         self.mapars = np.exp(params[self.p :])
-        roots = np.roots(np.append([1], self.arpars))
+        roots = _compute_roots(np.append([1 + 0j], self.arpars))
         self.acf = acf(self.arpars, self.mapars)
 
         ac = []
