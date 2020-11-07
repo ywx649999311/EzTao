@@ -62,7 +62,7 @@ def test_acf():
     ar1 = np.array([2, 1.1])
     ma1 = np.array([0.5])
 
-    carma20_acf = acf(ar1, ma1)
+    carma20_acf = acf(np.roots([1, 2, 1.1]), ar1, ma1)
     answers = np.array([0.02840909 - 0.08983743j, 0.02840909 + 0.08983743j])
 
     assert np.allclose(carma20_acf, answers)

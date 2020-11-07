@@ -1,6 +1,6 @@
 import numpy as np
 from celerite import terms
-from numba import njit, float64, complex128, int32
+from numba import njit, float64, complex128, int32, vectorize
 
 __all__ = ["acf", "DRW_term", "DHO_term", "CARMA_term"]
 
@@ -16,12 +16,13 @@ def _compute_roots(coeffs):
     return roots
 
 
-@njit(complex128[:](float64[:], float64[:]))
-def acf(arparam, maparam):
+@njit(complex128[:](complex128[:], float64[:], float64[:]))
+def acf(arroots, arparam, maparam):
     """Return CARMA ACF coefficients given model parameter in Brockwell et al.
     2001 notation.
 
     Args:
+        arroots (object): AR roots in a numpy array
         arparam (object): AR parameters in a numpy array
         maparam (object): MA parameters in a numpy array
 
@@ -35,9 +36,6 @@ def acf(arparam, maparam):
     # MA param into Kell's notation
     # arparam = np.array(arparam)
     maparam = np.array([x / sigma for x in maparam])
-
-    # get roots
-    arroots = _compute_roots(np.append([1 + 0j], arparam))
 
     # init acf product terms
     num_left = np.zeros(p, dtype=np.complex128)
@@ -99,10 +97,11 @@ class CARMA_term(terms.Term):
         arpar_names = ("log_a1",)
         mapar_names = ("log_b0",)
 
-        self.arpars = np.exp(log_arpars)
-        self.mapars = np.exp(log_mapars)
+        self.arpars = _compute_exp(np.array(log_arpars))
+        self.mapars = _compute_exp(np.array(log_mapars))
         self.p = len(self.arpars)
         self.q = len(self.mapars) - 1
+        # self._roots = _compute_roots(np.append([1 + 0j], self.arpars))
 
         # combine ar and ma params into one array
         log_pars = np.append(log_arpars, log_mapars)
@@ -120,48 +119,31 @@ class CARMA_term(terms.Term):
     def get_real_coefficients(self, params):
 
         # get roots and acf
-        self.arpars = np.exp(params[: self.p])
-        self.mapars = np.exp(params[self.p :])
-        roots = _compute_roots(np.append([1 + 0j], self.arpars))
-        self.acf = acf(self.arpars, self.mapars)
+        self.arpars = _compute_exp(params[: self.p])
+        self.mapars = _compute_exp(params[self.p :])
+        self._roots = _compute_roots(np.append([1 + 0j], self.arpars))
+        self.acf = acf(self._roots, self.arpars, self.mapars)
 
-        ar = []
-        cr = []
+        self.mask = np.iscomplex(self._roots)
+        acf_real = self.acf[~self.mask]
+        roots_real = self._roots[~self.mask]
+        num_real = acf_real.shape[0]
 
-        mask = np.iscomplex(roots)
-        acf_real = self.acf[~mask]
-        roots_real = roots[~mask]
+        ar = acf_real[:num_real].real
+        cr = -roots_real[:num_real].real
 
-        for i in range(len(acf_real)):
-            ar.append(acf_real[i].real)
-            cr.append(-roots_real[i].real)
         return (ar, cr)
 
     def get_complex_coefficients(self, params):
 
-        # get roots and acf
-        self.arpars = np.exp(params[: self.p])
-        self.mapars = np.exp(params[self.p :])
-        roots = _compute_roots(np.append([1 + 0j], self.arpars))
-        self.acf = acf(self.arpars, self.mapars)
+        # mask = np.iscomplex(self._roots)
+        acf_complex = self.acf[self.mask]
+        roots_complex = self._roots[self.mask]
 
-        ac = []
-        bc = []
-        cc = []
-        dc = []
-
-        mask = np.iscomplex(roots)
-        acf_complex = self.acf[mask]
-        roots_complex = roots[mask]
-
-        for i in range(len(acf_complex)):
-
-            # only take every other root/acf
-            if i % 2 == 0:
-                ac.append(2 * acf_complex[i].real)
-                bc.append(2 * acf_complex[i].imag)
-                cc.append(-roots_complex[i].real)
-                dc.append(-roots_complex[i].imag)
+        ac = 2 * acf_complex[::2].real
+        bc = 2 * acf_complex[::2].imag
+        cc = -roots_complex[::2].real
+        dc = -roots_complex[::2].imag
 
         return (ac, bc, cc, dc)
 
@@ -171,6 +153,11 @@ class CARMA_term(terms.Term):
         self.get_all_coefficients()
 
         return np.sqrt(np.abs(np.sum(self.acf)))
+
+
+@njit(float64[:](float64[:]))
+def _compute_exp(params):
+    return np.exp(params)
 
 
 class DHO_term(CARMA_term):

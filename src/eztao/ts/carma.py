@@ -193,8 +193,8 @@ def neg_ll(params, y, yerr, gp):
     np.seterr(over=notify_method)
     np.seterr(under=notify_method)
 
-    params = np.array(params)
-    dim = len(params)
+    # params = np.array(params)
+    dim = params.shape[0]
     run = True
     lap = 0
 
@@ -246,7 +246,7 @@ def dho_log_param_init():
     log_b0 = np.random.uniform(-10, -5, 1)[0]
     log_b1 = np.random.uniform(-10, -5, 1)[0]
 
-    return [log_a1, log_a2, log_b0, log_b1]
+    return np.array([log_a1, log_a2, log_b0, log_b1])
 
 
 def carma_log_param_init(dim):
@@ -258,7 +258,7 @@ def carma_log_param_init(dim):
         list: The generated CAMRA parameters in natural log.
     """
 
-    log_param = np.random.uniform(-8, 1, dim)
+    log_param = np.random.uniform(-8, 2, int(dim))
 
     return log_param
 
