@@ -3,7 +3,12 @@ name = "eztao"
 version = "0.1.0"
 description = "A toolkit for Active Galactic Nuclei (AGN) time-series analysis."
 authors = ["Weixiang Yu <wy73@drexel.edu>"]
+readme = "README.md"
 license = "MIT"
+repository = "https://github.com/ywx649999311/EzTao"
+include = [
+    "LICENSE",
+]
 
 [tool.poetry.dependencies]
 python = "^3.7"

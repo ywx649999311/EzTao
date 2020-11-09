@@ -1,0 +1,35 @@
+name: publish to testpypi
+on:
+  push:
+    tags:
+      - '*.*.*'
+    
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: "3.7"
+      - name: Install and configure Poetry
+        uses: snok/install-poetry@v1.1.0
+        with:
+          version: 1.1.4
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v2
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+      - name: Install dependencies
+        run: poetry install
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+      - name: Config
+        run: |
+          poetry config repositories.testpypi https://test.pypi.org/legacy/
+          poetry config pypi-token.testpypi ${{ secrets.TEST_PYPI_TOKEN }}
+      - name: Publish 
+        run: poetry publish --build -r testpypi
