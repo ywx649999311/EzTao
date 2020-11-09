@@ -2,6 +2,21 @@
 ## EzTao (易道)
 **EzTao** is a toolkit for conducting AGN time-series/variability analysis, mainly utilizing the continuous-time auto-regressive moving average model (CARMA)
 
+### Installation
+>```
+>pip install eztao
+>```
+
+#### Dependencies
+>```
+>python = "^3.7"
+>numpy = "^1.19.1"
+>celerite = "^0.4.0"
+>matplotlib = "^3.3.1"
+>scipy = "^1.5.2"
+>numba = "^0.51.2"
+>```
+
 ### Development
 `poetry` is used to solve dependencies and to build/publish this package. Below shows how setup the environment for development (assuming you already have `poetry` installed on your machine). 
 

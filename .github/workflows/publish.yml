@@ -1,8 +1,7 @@
 name: publish to testpypi
 on:
-  push:
-    tags:
-      - '*.*.*'
+  release:
+    types: [published]
     
 jobs:
   publish:
@@ -29,7 +28,6 @@ jobs:
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
       - name: Config
         run: |
-          poetry config repositories.testpypi https://test.pypi.org/legacy/
-          poetry config pypi-token.testpypi ${{ secrets.TEST_PYPI_TOKEN }}
+          poetry config pypi-token.pypi ${{ secrets.PYPI_TOKEN }}
       - name: Publish 
-        run: poetry publish --build -r testpypi
+        run: poetry publish --build -r pypi
