@@ -79,7 +79,7 @@ def gpSimFull(carmaTerm, SNR, duration, N, nLC=1):
     t = np.repeat(t[None, :], nLC, axis=0)
     y = gp_sim.sample(size=nLC)
 
-    # format yerr
+    # format yerr making it heteroscedastic
     y_rank = y.argsort(axis=1).argsort(axis=1)
     yerr = np.repeat(yerr[None, :], nLC, axis=0)
     yerr = np.array(list(map(lambda x, y: x[y], yerr, y_rank)))
@@ -122,7 +122,7 @@ def gpSimRand(carmaTerm, SNR, duration, N, nLC=1, season=True, full_N=10_000):
         if season:
             mask1 = add_season(t[i])
         else:
-            mask1 = np.ones(len(t[i]), dtype=np.bool)
+            mask1 = np.ones(t[i].shape[0], dtype=np.bool)
         mask2 = downsample_byN(t[i, mask1], N)
         tOut[i, :] = t[i, mask1][mask2]
         yOut[i, :] = y[i, mask1][mask2]
@@ -156,7 +156,7 @@ def gpSimByT(carmaTerm, SNR, t, factor=10, nLC=1):
     """
     # get number points in full LC based on desired cadence
     duration = ceil(t[-1] - t[0])
-    N = 10 * ceil(duration / np.median(t[1:] - t[:-1]))
+    N = factor * ceil(duration / np.median(t[1:] - t[:-1]))
 
     # simulate full LC
     tFull, yFull, yerrFull = gpSimFull(carmaTerm, SNR, duration, N=N, nLC=nLC)
@@ -350,10 +350,10 @@ def _min_opt(y, yerr, best_fit, gp, init_func, debug, bounds, method="L-BFGS-B")
     succeded = False  # ever succeded
     run_ct = 0
     jac_log_rec = 10
-    initial_params = gp.get_parameter_vector()
 
     # set bound based on LC std for amp
     while rerun and (run_ct < 5):
+        initial_params = gp.get_parameter_vector()
         run_ct += 1
         r = minimize(
             neg_ll,
@@ -407,6 +407,9 @@ def drw_fit(t, y, yerr, debug=False, user_bounds=None):
         user_bounds (list, optional): Parameter boundaries for the optimizer.
             Defaults to None.
 
+    Raises:
+        Exception: If celerite cannot factorize after 5 trials.
+
     Returns:
         object: An array of best-fit parameters
     """
@@ -439,6 +442,8 @@ def drw_fit(t, y, yerr, debug=False, user_bounds=None):
             gp.compute(t, yerr)
             compute = False
         except celerite.solver.LinAlgError:
+            if compute_ct > 4:
+                raise Exception("celerite can't factorize matrix!")
             gp.set_parameter_vector(drw_log_param_init(std))
 
     best_fit_return = _de_opt(
@@ -464,6 +469,9 @@ def dho_fit(t, y, yerr, debug=False, user_bounds=None):
         debug (bool, optional): Turn on/off debug mode. Defaults to False.
         user_bounds (list, optional): Parameter boundaries for the optimizer.
             Defaults to None.
+
+    Raises:
+        Exception: If celerite cannot factorize after 5 trials.
 
     Returns:
         object: An array of best-fit parameters
@@ -494,6 +502,8 @@ def dho_fit(t, y, yerr, debug=False, user_bounds=None):
             gp.compute(t, yerr)
             compute = False
         except celerite.solver.LinAlgError:
+            if compute_ct > 4:
+                raise Exception("celerite can't factorize matrix!")
             gp.set_parameter_vector(dho_log_param_init())
 
     best_fit_return = _de_opt(
@@ -510,7 +520,7 @@ def dho_fit(t, y, yerr, debug=False, user_bounds=None):
 
 
 def carma_fit(t, y, yerr, p, q, de=True, debug=False, user_bounds=None):
-    """Fix time series to all CARMA model
+    """Fit time series to all CARMA model
 
     Args:
         t (object): An array of time stamps in days.
@@ -523,6 +533,9 @@ def carma_fit(t, y, yerr, p, q, de=True, debug=False, user_bounds=None):
         debug (bool, optional): Turn on/off debug mode. Defaults to False.
         user_bounds (list, optional): Parameter boundaries for the optimizer.
             Defaults to None.
+
+    Raises:
+        Exception: If celerite cannot factorize after 5 trials.
 
     Returns:
         object: An array of best-fit parameters
@@ -556,6 +569,8 @@ def carma_fit(t, y, yerr, p, q, de=True, debug=False, user_bounds=None):
             gp.compute(t, yerr)
             compute = False
         except celerite.solver.LinAlgError:
+            if compute_ct > 4:
+                raise Exception("celerite can't factorize matrix!")
             gp.set_parameter_vector(carma_log_param_init(dim))
 
     if de:

@@ -16,6 +16,11 @@ def _compute_roots(coeffs):
     return roots
 
 
+@njit(float64[:](float64[:]))
+def _compute_exp(params):
+    return np.exp(params)
+
+
 @njit(complex128[:](complex128[:], float64[:], float64[:]))
 def acf(arroots, arparam, maparam):
     """Return CARMA ACF coefficients given model parameter in Brockwell et al.
@@ -153,11 +158,6 @@ class CARMA_term(terms.Term):
         self.get_all_coefficients()
 
         return np.sqrt(np.abs(np.sum(self.acf)))
-
-
-@njit(float64[:](float64[:]))
-def _compute_exp(params):
-    return np.exp(params)
 
 
 class DHO_term(CARMA_term):
