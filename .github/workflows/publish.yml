@@ -1,4 +1,4 @@
-name: publish to testpypi
+name: publish to pypi
 on:
   release:
     types: [published]
@@ -28,6 +28,7 @@ jobs:
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
       - name: Config
         run: |
+          poetry config repositories.pypi https://pypi.org
           poetry config pypi-token.pypi ${{ secrets.PYPI_TOKEN }}
       - name: Publish 
         run: poetry publish --build -r pypi
