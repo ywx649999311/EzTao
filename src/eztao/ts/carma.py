@@ -415,7 +415,7 @@ def drw_fit(t, y, yerr, debug=False, user_bounds=None):
     """
 
     best_fit = np.empty(2)
-    std = np.sqrt(np.var(y) - np.var(yerr))
+    std = np.std(y)
 
     # init bounds for fitting
     if user_bounds is not None and (len(user_bounds) == 2):
