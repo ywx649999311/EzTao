@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 from celerite import terms
 from numba import njit, float64, complex128, int32, vectorize
@@ -12,6 +13,7 @@ def _compute_roots(coeffs):
     # find roots using np and make roots that are almost real real
     roots = np.roots(coeffs)
     roots[np.abs(roots.imag) < 1e-10] = roots[np.abs(roots.imag) < 1e-10].real
+    roots = roots[roots.real.argsort()]  # acsending sort by real part
 
     return roots
 
@@ -86,6 +88,14 @@ class DRW_term(terms.Term):
 
         return np.exp(log_sigma)
 
+    @property
+    def p(self):
+        return 1
+
+    @property
+    def q(self):
+        return 0
+
 
 class CARMA_term(terms.Term):
     """General CARMA term with arbitray parameters.
@@ -102,14 +112,10 @@ class CARMA_term(terms.Term):
         arpar_names = ("log_a1",)
         mapar_names = ("log_b0",)
 
-        self.arpars = _compute_exp(np.array(log_arpars))
-        self.mapars = _compute_exp(np.array(log_mapars))
-        self.p = len(self.arpars)
-        self.q = len(self.mapars) - 1
-        # self._roots = _compute_roots(np.append([1 + 0j], self.arpars))
-
-        # combine ar and ma params into one array
-        log_pars = np.append(log_arpars, log_mapars)
+        # set order & trigger roots/acf computation
+        self._p = len(log_arpars)
+        self._q = len(log_mapars) - 1
+        self.log_pars = np.append(log_arpars, log_mapars)
 
         # loop over par array to find out how many params
         for i in range(2, self.p + 1):
@@ -119,31 +125,63 @@ class CARMA_term(terms.Term):
             mapar_names += (mapar_temp.format(i),)
 
         self.parameter_names = arpar_names + mapar_names
-        super(CARMA_term, self).__init__(*log_pars, **kwargs)
+        super(CARMA_term, self).__init__(*self._log_pars, **kwargs)
+
+    @property
+    def p(self):
+        return self._p
+
+    @property
+    def q(self):
+        return self._q
+
+    @property
+    def log_pars(self):
+        return self._log_pars
+
+    @log_pars.setter
+    def log_pars(self, value):
+        """log_pars setter, will trigger some computation."""
+        if value.shape[0] == (self.p + self.q + 1):
+            self._log_pars = value
+        else:
+            raise ValueError("Dimension mismatch!")
+
+        # set pars and compute AR/MA roots, acf and determine real roots
+        self._pars = _compute_exp(self._log_pars)
+        self._arroots = _compute_roots(np.append([1 + 0j], self._pars[: self.p]))
+        self._maroots = (
+            _compute_roots(np.array(self._pars[self.p :][::-1], dtype=np.complex128))
+            if self.q > 0
+            else None
+        )
+        self.acf = acf(self._arroots, self._pars[: self.p], self._pars[self.p :])
+        self.mask = np.iscomplex(self._arroots)
+
+        self._pdef = True
+        if (self._arroots.real > 0).any():
+            self._pdef = False
+            print("Warning: CARMA process is not stationary!")
+        if (self._maroots is not None) and (self._maroots.real > 0).any():
+            print("Warning: CARMA process is not at minimum phase!")
 
     def get_real_coefficients(self, params):
 
-        # get roots and acf
-        self.arpars = _compute_exp(params[: self.p])
-        self.mapars = _compute_exp(params[self.p :])
-        self._roots = _compute_roots(np.append([1 + 0j], self.arpars))
-        self.acf = acf(self._roots, self.arpars, self.mapars)
+        # must trigger here, won't work when overload set_param_vector
+        self.log_pars = params
 
-        self.mask = np.iscomplex(self._roots)
         acf_real = self.acf[~self.mask]
-        roots_real = self._roots[~self.mask]
-        num_real = acf_real.shape[0]
+        roots_real = self._arroots[~self.mask]
 
-        ar = acf_real[:num_real].real
-        cr = -roots_real[:num_real].real
+        ar = acf_real[:].real
+        cr = -roots_real[:].real
 
         return (ar, cr)
 
     def get_complex_coefficients(self, params):
 
-        # mask = np.iscomplex(self._roots)
         acf_complex = self.acf[self.mask]
-        roots_complex = self._roots[self.mask]
+        roots_complex = self._arroots[self.mask]
 
         ac = 2 * acf_complex[::2].real
         bc = 2 * acf_complex[::2].imag
