@@ -6,7 +6,7 @@ from math import ceil
 from scipy.optimize import differential_evolution, minimize
 import celerite
 from celerite import GP
-from eztao.carma.CARMATerm import DRW_term, DHO_term, CARMA_term
+from eztao.carma.CARMATerm import DRW_term, DHO_term, CARMA_term, fcoeffs2coeffs
 from eztao.ts.utils import *
 
 __all__ = [
@@ -16,7 +16,8 @@ __all__ = [
     "drw_fit",
     "dho_fit",
     "carma_fit",
-    "neg_ll",
+    "neg_fcoeff_ll",
+    "neg_param_ll",
     "drw_log_param_init",
     "dho_log_param_init",
     "carma_log_param_init",
@@ -47,33 +48,19 @@ def gpSimFull(carmaTerm, SNR, duration, N, nLC=1):
         carmaTerm, celerite.celerite.terms.Term
     ), "carmaTerm must a celerite GP term"
 
-    gp_sim = GP(carmaTerm)
+    if (not isinstance(carmaTerm, DRW_term)) and (carmaTerm._arroots.real > 0).any():
+        raise RuntimeError(
+            "The covariance matrix of the provided CARMA term is not positive definite!"
+        )
 
     t = np.linspace(0, duration, N)
     noise = carmaTerm.get_rms_amp() / SNR
     yerr = np.random.lognormal(0, 0.25, N) * noise
     yerr = yerr[np.argsort(np.abs(yerr))]
 
-    # factor and factor_num to track factorization error
-    factor = True
-    fact_num = 0
-    yerr_reg = 1.123e-12
-
-    while factor:
-        try:
-            gp_sim.compute(t, yerr_reg)
-            factor = False
-        except Exception:
-            # if error, try to re-init t and yerr_reg
-            # t = np.linspace(0, duration, N)
-            yerr_reg += 1.123e-12
-
-            fact_num += 1
-            if fact_num > 10:
-                raise Exception(
-                    "Celerite cannot factorize the GP"
-                    + " covairance matrix, try again!"
-                )
+    # init GP and solve matrix
+    gp_sim = GP(carmaTerm)
+    gp_sim.compute(t)
 
     # simulate, assign yerr based on y
     t = np.repeat(t[None, :], nLC, axis=0)
@@ -172,7 +159,51 @@ def gpSimByT(carmaTerm, SNR, t, factor=10, nLC=1):
 
 
 ## Below is about Fitting
-def neg_ll(params, y, yerr, gp):
+# -------------------------------------------------------------------------------------
+def neg_fcoeff_ll(fcoeffs, y, yerr, gp):
+    """CARMA neg log likelihood function.
+
+    This method will catch 'overflow/underflow' runtimeWarning and
+    return -inf as probablility.
+
+    Args:
+        coeffs (object): Array-like, CARMA polynomial coeffs in the facotrized form.
+        y (object): Array-like, y values of the time series.
+        yerr (object): Array-like, error in y values of the time series.
+        gp (object): celerite GP model with the proper kernel.
+
+    Returns:
+        float: neg log likelihood.
+    """
+
+    assert gp.kernel.p >= 2, "Use neg_param_ll() instead!"
+
+    # change few runtimewarning action setting
+    notify_method = "raise"
+    np.seterr(over=notify_method)
+    np.seterr(under=notify_method)
+    trial = 0
+    neg_ll = -np.inf
+
+    while trial < 5:
+        trial += 1
+        try:
+            gp.kernel.set_log_fcoeffs(fcoeffs)
+            neg_ll = -gp.log_likelihood(y)
+            break
+        except celerite.solver.LinAlgError:
+            params += 1e-6 * np.random.randn(fcoeffs.shape[0])
+            continue
+        except np.linalg.LinAlgError:
+            params += 1e-6 * np.random.randn(fcoeffs.shape[0])
+            continue
+        except FloatingPointError:
+            break
+
+    return neg_ll
+
+
+def neg_param_ll(params, y, yerr, gp):
     """CARMA neg log likelihood function.
 
     This method will catch 'overflow/underflow' runtimeWarning and
@@ -192,29 +223,23 @@ def neg_ll(params, y, yerr, gp):
     notify_method = "raise"
     np.seterr(over=notify_method)
     np.seterr(under=notify_method)
+    trial = 0
+    neg_ll = -np.inf
 
-    # params = np.array(params)
-    dim = params.shape[0]
-    run = True
-    lap = 0
-
-    while run:
-        if lap > 10:
-            return -np.inf
-
-        lap += 1
+    while trial < 5:
+        trial += 1
         try:
             gp.set_parameter_vector(params)
             neg_ll = -gp.log_likelihood(y)
-            run = False
+            break
         except celerite.solver.LinAlgError:
-            params += 1e-6 * np.random.randn(dim)
+            params += 1e-6 * np.random.randn(params.shape[0])
             continue
         except np.linalg.LinAlgError:
-            params += 1e-6 * np.random.randn(dim)
+            params += 1e-6 * np.random.randn(params.shape[0])
             continue
         except FloatingPointError:
-            return -np.inf
+            break
 
     return neg_ll
 
@@ -258,12 +283,43 @@ def carma_log_param_init(dim):
         list: The generated CAMRA parameters in natural log.
     """
 
-    log_param = np.random.uniform(-8, 2, int(dim))
+    log_param = np.random.uniform(-5, 2, int(dim))
 
     return log_param
 
 
-def _de_opt(y, yerr, best_fit, gp, init_func, debug, bounds):
+def carma_log_fcoeff_init(dim):
+    """Randomly generate DHO parameters from [-8, 1] in log.
+
+    Args:
+        dim (int): For a CARMA(p,q) model, dim=p+q+1.
+    Returns:
+        list: The generated CAMRA parameters in natural log.
+    """
+
+    log_param = np.random.uniform(-6, 3, int(dim))
+
+    return log_param
+
+
+def sample_carma(p, q):
+    """Randomly drawing a valid CARMA process given the order.
+
+    Args:
+        p (int): CARMA p order.
+        q (int): CARMA q order.
+
+    Returns:
+        AR parameters and MA paramters in seperate arrays.
+    """
+    init_fcoeffs = np.exp(carma_log_fcoeff_init(p + q + 1))
+    ARpars = fcoeffs2coeffs(np.append(init_fcoeffs[:p], [1]))[:-1][::-1]
+    MApars = fcoeffs2coeffs(init_fcoeffs[p:])
+
+    return ARpars, MApars
+
+
+def _de_opt(y, yerr, best_fit, gp, init_func, mode, debug, bounds):
     """Defferential Evolution optimizer wrapper.
 
     Args:
@@ -271,9 +327,10 @@ def _de_opt(y, yerr, best_fit, gp, init_func, debug, bounds):
         y (object): An array of y values.
         best_fit (object): An empty array to store best fit parameters.
         gp (object): celerite GP model object.
-        init_func ([type]): CARMA parameter initialization function,
+        init_func (object): CARMA parameter initialization function,
             i.e. drw_log_param_init.
-        debug (bool, optional): Turn on/off debug mode.
+        mode (str): Specify which space to sample, 'param' or 'coeff'.
+        debug (bool): Turn on/off debug mode.
         bounds (list): Initial parameter boundaries for the optimizer.
 
     Returns:
@@ -285,6 +342,9 @@ def _de_opt(y, yerr, best_fit, gp, init_func, debug, bounds):
     succeded = False  # ever succeded
     run_ct = 0
     jac_log_rec = 10
+
+    # set the neg_ll function based on mode
+    neg_ll = neg_fcoeff_ll if mode == "coeff" else neg_param_ll
 
     # set bound based on LC std for amp
     while rerun and (run_ct < 5):
@@ -320,14 +380,13 @@ def _de_opt(y, yerr, best_fit, gp, init_func, debug, bounds):
     if not succeded:
         best_fit[:] = np.nan
 
-    # Below code is used to visualize if stuck in local minima
     if debug:
         print(r)
 
     return best_fit
 
 
-def _min_opt(y, yerr, best_fit, gp, init_func, debug, bounds, method="L-BFGS-B"):
+def _min_opt(y, yerr, best_fit, gp, init_func, mode, debug, bounds, method="L-BFGS-B"):
     """A wrapper for scipy.optimize.minimize.
 
     Args:
@@ -337,9 +396,10 @@ def _min_opt(y, yerr, best_fit, gp, init_func, debug, bounds, method="L-BFGS-B")
         gp (object): celerite GP model object.
         init_func ([type]): CARMA parameter initialization function,
             i.e. drw_log_param_init.
+        mode (str): Specify which space to sample, 'param' or 'coeff'.
         debug (bool, optional): Turn on/off debug mode.
         bounds (list): Initial parameter boundaries for the optimizer.
-        method (str): Likelihood optimization method.
+        method (str, optional): Likelihood optimization method.
 
     Returns:
         object: An array of best-fit parameters
@@ -351,9 +411,12 @@ def _min_opt(y, yerr, best_fit, gp, init_func, debug, bounds, method="L-BFGS-B")
     run_ct = 0
     jac_log_rec = 10
 
+    # set the neg_ll function based on mode
+    neg_ll = neg_fcoeff_ll if mode == "coeff" else neg_param_ll
+
     # set bound based on LC std for amp
     while rerun and (run_ct < 5):
-        initial_params = gp.get_parameter_vector()
+        initial_params = init_func()
         run_ct += 1
         r = minimize(
             neg_ll,
@@ -389,7 +452,6 @@ def _min_opt(y, yerr, best_fit, gp, init_func, debug, bounds, method="L-BFGS-B")
     if not succeded:
         best_fit[:] = np.nan
 
-    # Below code is used to visualize if stuck in local minima
     if debug:
         print(r)
 
@@ -408,7 +470,7 @@ def drw_fit(t, y, yerr, debug=False, user_bounds=None):
             Defaults to None.
 
     Raises:
-        Exception: If celerite cannot factorize after 5 trials.
+        celerite.solver.LinAlgError: For non-positive definite matrices.
 
     Returns:
         object: An array of best-fit parameters
@@ -427,24 +489,10 @@ def drw_fit(t, y, yerr, debug=False, user_bounds=None):
     t = t - t[0]
     y = y - np.median(y)
 
-    # dynamic control of fitting flow
-    compute = True  # handle can't factorize in gp.compute()
-    compute_ct = 0
-
     # initialize parameter and kernel
     kernel = DRW_term(*drw_log_param_init(std))
     gp = GP(kernel, mean=np.median(y))
-
-    # compute can't factorize, try 4 more times
-    while compute & (compute_ct < 5):
-        compute_ct += 1
-        try:
-            gp.compute(t, yerr)
-            compute = False
-        except celerite.solver.LinAlgError:
-            if compute_ct > 4:
-                raise Exception("celerite can't factorize matrix!")
-            gp.set_parameter_vector(drw_log_param_init(std))
+    gp.compute(t, yerr)
 
     best_fit_return = _de_opt(
         y,
@@ -452,6 +500,7 @@ def drw_fit(t, y, yerr, debug=False, user_bounds=None):
         best_fit,
         gp,
         lambda: drw_log_param_init(std),
+        "param",
         debug,
         bounds,
     )
@@ -471,7 +520,7 @@ def dho_fit(t, y, yerr, debug=False, user_bounds=None):
             Defaults to None.
 
     Raises:
-        Exception: If celerite cannot factorize after 5 trials.
+        celerite.solver.LinAlgError: For non-positive definite matrices.
 
     Returns:
         object: An array of best-fit parameters
@@ -487,24 +536,10 @@ def dho_fit(t, y, yerr, debug=False, user_bounds=None):
     t = t - t[0]
     y = y - np.median(y)
 
-    # dynamic control of fitting flow
-    compute = True  # handle can't factorize in gp.compute()
-    compute_ct = 0
-
     # initialize parameter, kernel and GP
     kernel = DHO_term(*dho_log_param_init())
     gp = GP(kernel, mean=np.mean(y))
-
-    # compute can't factorize, try 4 more times
-    while compute & (compute_ct < 5):
-        compute_ct += 1
-        try:
-            gp.compute(t, yerr)
-            compute = False
-        except celerite.solver.LinAlgError:
-            if compute_ct > 4:
-                raise Exception("celerite can't factorize matrix!")
-            gp.set_parameter_vector(dho_log_param_init())
+    gp.compute(t, yerr)
 
     best_fit_return = _de_opt(
         y,
@@ -512,6 +547,7 @@ def dho_fit(t, y, yerr, debug=False, user_bounds=None):
         best_fit,
         gp,
         lambda: dho_log_param_init(),
+        "param",
         debug,
         bounds,
     )
@@ -519,7 +555,7 @@ def dho_fit(t, y, yerr, debug=False, user_bounds=None):
     return best_fit_return
 
 
-def carma_fit(t, y, yerr, p, q, de=True, debug=False, user_bounds=None):
+def carma_fit(t, y, yerr, p, q, de=True, debug=False, mode="coeff", user_bounds=None):
     """Fit time series to all CARMA model
 
     Args:
@@ -531,14 +567,15 @@ def carma_fit(t, y, yerr, p, q, de=True, debug=False, user_bounds=None):
         de (bool, optional): Whether to use differential_evolution as the
             optimizer. Defaults to True.
         debug (bool, optional): Turn on/off debug mode. Defaults to False.
-        user_bounds (list, optional): Parameter boundaries for the optimizer.
-            Defaults to None.
-
+        mode (str, optional): Specify which space to sample, 'param' or 'coeff'.
+            Defaults to 'coeff'.
+        user_bounds (list, optional): Factorized polynomial coefficient boundaries
+            for the optimizer. Defaults to None.
     Raises:
-        Exception: If celerite cannot factorize after 5 trials.
+        celerite.solver.LinAlgError: For non-positive definite matrices.
 
     Returns:
-        object: An array of best-fit parameters
+        object: An array of best-fit CARMA parameters
     """
     dim = int(p + q + 1)
     best_fit = np.empty(dim)
@@ -547,31 +584,23 @@ def carma_fit(t, y, yerr, p, q, de=True, debug=False, user_bounds=None):
     if user_bounds is not None and (len(user_bounds) == dim):
         bounds = user_bounds
     else:
-        bounds = [(-10, 5)] * dim
+        bounds = [(-6, 3)] * dim
 
     # re-position lc
     t = t - t[0]
     y = y - np.median(y)
 
-    # dynamic control of fitting flow
-    compute = True  # handle can't factorize in gp.compute()
-    compute_ct = 0
-
     # initialize parameter and kernel
-    carma_log_params = carma_log_param_init(dim)
-    kernel = CARMA_term(carma_log_params[:p], carma_log_params[p:])
+    ARpars, MApars = sample_carma(p, q)
+    kernel = CARMA_term(np.log(ARpars), np.log(MApars))
     gp = GP(kernel, mean=np.median(y))
+    gp.compute(t, yerr)
 
-    # compute can't factorize, try 4 more times
-    while compute & (compute_ct < 5):
-        compute_ct += 1
-        try:
-            gp.compute(t, yerr)
-            compute = False
-        except celerite.solver.LinAlgError:
-            if compute_ct > 4:
-                raise Exception("celerite can't factorize matrix!")
-            gp.set_parameter_vector(carma_log_param_init(dim))
+    init_func = (
+        lambda: carma_log_fcoeff_init(dim)
+        if mode == "coeff"
+        else lambda: carma_log_param_init(dim)
+    )
 
     if de:
         best_fit_return = _de_opt(
@@ -579,7 +608,8 @@ def carma_fit(t, y, yerr, p, q, de=True, debug=False, user_bounds=None):
             yerr,
             best_fit,
             gp,
-            lambda: carma_log_param_init(dim),
+            init_func,
+            mode,
             debug,
             bounds,
         )
@@ -589,7 +619,8 @@ def carma_fit(t, y, yerr, p, q, de=True, debug=False, user_bounds=None):
             yerr,
             best_fit,
             gp,
-            lambda: carma_log_param_init(dim),
+            init_func,
+            mode,
             debug,
             bounds,
         )

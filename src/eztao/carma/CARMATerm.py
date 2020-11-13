@@ -1,9 +1,9 @@
-import warnings
 import numpy as np
+from numpy.polynomial import polynomial as P
 from celerite import terms
 from numba import njit, float64, complex128, int32, vectorize
 
-__all__ = ["acf", "DRW_term", "DHO_term", "CARMA_term"]
+__all__ = ["acf", "DRW_term", "DHO_term", "CARMA_term", "fcoeffs2coeffs"]
 
 
 @njit(complex128[:](complex128[:]))
@@ -21,6 +21,35 @@ def _compute_roots(coeffs):
 @njit(float64[:](float64[:]))
 def _compute_exp(params):
     return np.exp(params)
+
+
+@njit(float64[:](float64[:], float64[:]))
+def polymul(poly1, poly2):
+    poly1_len = poly1.shape[0]
+    poly2_len = poly2.shape[0]
+    c = np.zeros(poly1_len + poly2_len - 1)
+
+    for i in np.arange(poly1_len):
+        for j in np.arange(poly2_len):
+            c[i + j] += poly1[i] * poly2[j]
+    return c
+
+
+@njit(float64[:](float64[:]))
+def fcoeffs2coeffs(fcoeffs):
+    """Convert from factored poly coeffs to the coeffs of the produce."""
+    size = fcoeffs.shape[0] - 1
+    odd = np.bool(size & 0x1)
+    nPair = size // 2
+    poly = fcoeffs[-1:]
+
+    if odd:
+        poly = polymul(poly, np.array([fcoeffs[-2], 1.0]))
+
+    for p in np.arange(nPair):
+        poly = polymul(poly, np.array([fcoeffs[p * 2], fcoeffs[p * 2 + 1], 1.0]))
+
+    return poly
 
 
 @njit(complex128[:](complex128[:], float64[:], float64[:]))
@@ -115,13 +144,16 @@ class CARMA_term(terms.Term):
         # set order & trigger roots/acf computation
         self._p = len(log_arpars)
         self._q = len(log_mapars) - 1
+        self._dim = self._p + self._q + 1
         self.log_pars = np.append(log_arpars, log_mapars)
+        if (self._arroots.real > 0).any():
+            print("Warning: CARMA process is not stationary!")
 
         # loop over par array to find out how many params
-        for i in range(2, self.p + 1):
+        for i in range(2, self._p + 1):
             arpar_names += (arpar_temp.format(i),)
 
-        for i in range(1, self.q + 1):
+        for i in range(1, self._q + 1):
             mapar_names += (mapar_temp.format(i),)
 
         self.parameter_names = arpar_names + mapar_names
@@ -142,34 +174,30 @@ class CARMA_term(terms.Term):
     @log_pars.setter
     def log_pars(self, value):
         """log_pars setter, will trigger some computation."""
-        if value.shape[0] == (self.p + self.q + 1):
+        if value.shape[0] == (self._dim):
             self._log_pars = value
         else:
             raise ValueError("Dimension mismatch!")
 
         # set pars and compute AR/MA roots, acf and determine real roots
         self._pars = _compute_exp(self._log_pars)
-        self._arroots = _compute_roots(np.append([1 + 0j], self._pars[: self.p]))
-        self._maroots = (
-            _compute_roots(np.array(self._pars[self.p :][::-1], dtype=np.complex128))
-            if self.q > 0
-            else None
-        )
-        self.acf = acf(self._arroots, self._pars[: self.p], self._pars[self.p :])
+        self._arroots = _compute_roots(np.append([1 + 0j], self._pars[: self._p]))
+        self.acf = acf(self._arroots, self._pars[: self._p], self._pars[self._p :])
         self.mask = np.iscomplex(self._arroots)
 
-        self._pdef = True
-        if (self._arroots.real > 0).any():
-            self._pdef = False
-            print("Warning: CARMA process is not stationary!")
-        if (self._maroots is not None) and (self._maroots.real > 0).any():
-            print("Warning: CARMA process is not at minimum phase!")
+    def set_log_fcoeffs(self, log_fcoeffs):
+        """Use coeffs of the factored polynomial to set CARMA paramters."""
+        if log_fcoeffs.shape[0] != (self._dim):
+            raise ValueError("Dimension mismatch!")
+
+        fcoeffs = _compute_exp(log_fcoeffs)
+        ARpars = fcoeffs2coeffs(np.append(fcoeffs[: self._p], [1]))[:-1][::-1]
+        MApars = fcoeffs2coeffs(fcoeffs[self._p :])
+        self.set_parameter_vector(np.log(np.append(ARpars, MApars)))
 
     def get_real_coefficients(self, params):
 
-        # must trigger here, won't work when overload set_param_vector
         self.log_pars = params
-
         acf_real = self.acf[~self.mask]
         roots_real = self._arroots[~self.mask]
 

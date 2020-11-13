@@ -66,3 +66,10 @@ def test_acf():
     answers = np.array([0.02840909 - 0.08983743j, 0.02840909 + 0.08983743j])
 
     assert np.allclose(carma20_acf, answers)
+
+
+def test_coeff_convert():
+    """Test the function convertion from factored coeffs to end coeffs."""
+    assert np.allclose(fcoeffs2coeffs(np.array([1.0, 2, 1, 1])), [1, 3, 3, 1])
+    assert np.allclose(fcoeffs2coeffs(np.array([1.0, 2, 1.2])), [1.2, 2.4, 1.2])
+    assert np.allclose(fcoeffs2coeffs(np.array([1.0, 2])), [2, 2])
