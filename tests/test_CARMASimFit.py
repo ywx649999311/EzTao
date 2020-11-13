@@ -109,7 +109,8 @@ def test_carmaFit():
         t, y, yerr = gpSimRand(kernel, 100, 365 * 10.0, 500, nLC=100, season=False)
         best_fit_carma = np.array(
             Parallel(n_jobs=-1)(
-                delayed(carma_fit)(t[i], y[i], yerr[i], 2, 0) for i in range(len(t))
+                delayed(carma_fit)(t[i], y[i], yerr[i], 2, 0, mode="param")
+                for i in range(len(t))
             )
         )
 
@@ -119,3 +120,7 @@ def test_carmaFit():
         # previous simulations. (see LC_fit_fuctions.ipynb)
         assert np.percentile(diff, 25) > -0.35
         assert np.percentile(diff, 75) < 0.1
+
+    # use min opt, pass if no error thrown
+    for i in range(10):
+        carma_fit(t[i * 5], y[i * 5], yerr[i * 5], 2, 1, de=False)

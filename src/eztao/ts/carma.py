@@ -167,7 +167,7 @@ def neg_fcoeff_ll(fcoeffs, y, yerr, gp):
     return -inf as probablility.
 
     Args:
-        coeffs (object): Array-like, CARMA polynomial coeffs in the facotrized form.
+        fcoeffs (object): Array-like, CARMA polynomial coeffs in the facotrized form.
         y (object): Array-like, y values of the time series.
         yerr (object): Array-like, error in y values of the time series.
         gp (object): celerite GP model with the proper kernel.
@@ -192,10 +192,10 @@ def neg_fcoeff_ll(fcoeffs, y, yerr, gp):
             neg_ll = -gp.log_likelihood(y)
             break
         except celerite.solver.LinAlgError:
-            params += 1e-6 * np.random.randn(fcoeffs.shape[0])
+            fcoeffs += 1e-6 * np.random.randn(fcoeffs.shape[0])
             continue
         except np.linalg.LinAlgError:
-            params += 1e-6 * np.random.randn(fcoeffs.shape[0])
+            fcoeffs += 1e-6 * np.random.randn(fcoeffs.shape[0])
             continue
         except FloatingPointError:
             break
@@ -583,8 +583,14 @@ def carma_fit(t, y, yerr, p, q, de=True, debug=False, mode="coeff", user_bounds=
     # init bounds for fitting
     if user_bounds is not None and (len(user_bounds) == dim):
         bounds = user_bounds
+    elif p == 2 and q == 1:
+        bounds = [(-10, 7), (-14, 7), (-12, -2), (-11, -2)]
+    elif p == 2 and q == 0:
+        bounds = [(-10, 7), (-14, 7), (-12, -2)]
     else:
-        bounds = [(-6, 3)] * dim
+        ARbounds = [(-6, 1)] * p
+        MAbounds = [(-6, -1)] * (q + 1)
+        bounds = ARbounds + MAbounds
 
     # re-position lc
     t = t - t[0]

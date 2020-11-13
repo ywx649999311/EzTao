@@ -142,10 +142,14 @@ class CARMA_term(terms.Term):
         mapar_names = ("log_b0",)
 
         # set order & trigger roots/acf computation
+        log_pars = np.append(log_arpars, log_mapars)
         self._p = len(log_arpars)
         self._q = len(log_mapars) - 1
         self._dim = self._p + self._q + 1
-        self.log_pars = np.append(log_arpars, log_mapars)
+        self._compute(log_pars)
+
+        # check if stationary
+        self._arroots = _compute_roots(np.append([1 + 0j], self._pars[: self._p]))
         if (self._arroots.real > 0).any():
             print("Warning: CARMA process is not stationary!")
 
@@ -157,7 +161,7 @@ class CARMA_term(terms.Term):
             mapar_names += (mapar_temp.format(i),)
 
         self.parameter_names = arpar_names + mapar_names
-        super(CARMA_term, self).__init__(*self._log_pars, **kwargs)
+        super(CARMA_term, self).__init__(*log_pars, **kwargs)
 
     @property
     def p(self):
@@ -167,23 +171,12 @@ class CARMA_term(terms.Term):
     def q(self):
         return self._q
 
-    @property
-    def log_pars(self):
-        return self._log_pars
-
-    @log_pars.setter
-    def log_pars(self, value):
-        """log_pars setter, will trigger some computation."""
-        if value.shape[0] == (self._dim):
-            self._log_pars = value
-        else:
-            raise ValueError("Dimension mismatch!")
-
-        # set pars and compute AR/MA roots, acf and determine real roots
-        self._pars = _compute_exp(self._log_pars)
+    def _compute(self, params):
+        """Compute important CARMA parameters."""
+        self._pars = _compute_exp(params)
         self._arroots = _compute_roots(np.append([1 + 0j], self._pars[: self._p]))
         self.acf = acf(self._arroots, self._pars[: self._p], self._pars[self._p :])
-        self.mask = np.iscomplex(self._arroots)
+        self.mask = self._arroots.imag != 0
 
     def set_log_fcoeffs(self, log_fcoeffs):
         """Use coeffs of the factored polynomial to set CARMA paramters."""
@@ -197,7 +190,8 @@ class CARMA_term(terms.Term):
 
     def get_real_coefficients(self, params):
 
-        self.log_pars = params
+        # trigger re_compute & get celerite coeffs
+        self._compute(params)
         acf_real = self.acf[~self.mask]
         roots_real = self._arroots[~self.mask]
 

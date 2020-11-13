@@ -20,7 +20,7 @@ def main(output_path):
 
     # DRW
     ndpts = [100, 1_000, 10_000]
-    max_dpt = ndpts[-1]
+    max_dpt = max(ndpts[-1], 10_000)
     drw_dts = []
     nLC = 20
     drw_init_params = [
@@ -38,7 +38,7 @@ def main(output_path):
                 drw_fit(t[j], y[j], yerr[j])
         drw_dts.append(time.time() - start)
 
-    ## DHO
+    # ## DHO
     dho_dts = []
     dho_init_params = [dho1.get_parameter_vector(), dho2.get_parameter_vector()]
 
@@ -51,13 +51,23 @@ def main(output_path):
                 dho_fit(t[j], y[j], yerr[j])
         dho_dts.append(time.time() - start)
 
+    carma_dts = []
+    for dpts in ndpts:
+        start = time.time()
+        for i, kernel in enumerate([dho2, dho1]):
+            kernel.set_parameter_vector(dho_init_params[i])
+            t, y, yerr = gpSimRand(kernel, 100, 3650, dpts, full_N=max_dpt * 3, nLC=nLC)
+            for j in range(nLC):
+                carma_fit(t[j], y[j], yerr[j], 2, 1, mode="param")
+        carma_dts.append(time.time() - start)
+
     # save to file
     df = pd.DataFrame(
         {
             "data points": ndpts,
             "drw": np.array(drw_dts) / 60,
             "dho": np.array(dho_dts) / 40,
-            # "carma_30": np.array(carma_30_dts) / 100,
+            "carma21": np.array(carma_dts) / 40,
         }
     )
 
