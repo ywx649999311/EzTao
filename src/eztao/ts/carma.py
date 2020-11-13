@@ -41,7 +41,7 @@ def gpSimFull(carmaTerm, SNR, duration, N, nLC=1):
 
     Returns:
         Arrays: t, y and yerr of the simulated light curves in numpy arrays.
-            Note that errors are added to y.
+            Note that errors have been added to y.
     """
 
     assert isinstance(
@@ -74,7 +74,10 @@ def gpSimFull(carmaTerm, SNR, duration, N, nLC=1):
     yerr_sign[yerr_sign < 1] = -1
     yerr = yerr * yerr_sign
 
-    return t, y + yerr, yerr
+    if nLC == 1:
+        return t[0], y[0] + yerr[0], yerr[0]
+    else:
+        return t, y + yerr, yerr
 
 
 def gpSimRand(carmaTerm, SNR, duration, N, nLC=1, season=True, full_N=10_000):
@@ -95,9 +98,12 @@ def gpSimRand(carmaTerm, SNR, duration, N, nLC=1, season=True, full_N=10_000):
 
     Returns:
         Arrays: t, y and yerr of the simulated light curves in numpy arrays.
-            Note that errors are added to y.
+            Note that errors have been added to y.
     """
     t, y, yerr = gpSimFull(carmaTerm, SNR, duration, full_N, nLC=nLC)
+    t = np.atleast_2d(t)
+    y = np.atleast_2d(y)
+    yerr = np.atleast_2d(yerr)
 
     # output t & yerr
     tOut = np.empty((nLC, N))
@@ -115,7 +121,10 @@ def gpSimRand(carmaTerm, SNR, duration, N, nLC=1, season=True, full_N=10_000):
         yOut[i, :] = y[i, mask1][mask2]
         yerrOut[i, :] = yerr[i, mask1][mask2]
 
-    return tOut, yOut, yerrOut
+    if nLC == 1:
+        return tOut[0], yOut[0], yerrOut[0]
+    else:
+        return tOut, yOut, yerrOut
 
 
 def gpSimByT(carmaTerm, SNR, t, factor=10, nLC=1):
@@ -139,7 +148,7 @@ def gpSimByT(carmaTerm, SNR, t, factor=10, nLC=1):
 
     Returns:
         Arrays: t, y and yerr of the simulated light curves in numpy arrays.
-            Note that errors are added to y.
+            Note that errors have been added to y.
     """
     # get number points in full LC based on desired cadence
     duration = ceil(t[-1] - t[0])
@@ -147,6 +156,9 @@ def gpSimByT(carmaTerm, SNR, t, factor=10, nLC=1):
 
     # simulate full LC
     tFull, yFull, yerrFull = gpSimFull(carmaTerm, SNR, duration, N=N, nLC=nLC)
+    tFull = np.atleast_2d(tFull)
+    yFull = np.atleast_2d(yFull)
+    yerrFull = np.atleast_2d(yerrFull)
 
     # downsample by desired output cadence
     t_expand = np.repeat(t[None, :], nLC, axis=0)
@@ -155,7 +167,10 @@ def gpSimByT(carmaTerm, SNR, t, factor=10, nLC=1):
     yOut = np.array(list(map(lambda x, y: x[y], yFull, tOut_idx)))
     yerrOut = np.array(list(map(lambda x, y: x[y], yerrFull, tOut_idx)))
 
-    return tOut, yOut, yerrOut
+    if nLC == 1:
+        return tOut[0], yOut[0], yerrOut[0]
+    else:
+        return tOut, yOut, yerrOut
 
 
 ## Below is about Fitting

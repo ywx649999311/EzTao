@@ -46,6 +46,10 @@ def test_simRand():
         assert t.shape[1] == y.shape[1] == yerr.shape[1] == 150
         assert t.shape[0] == y.shape[0] == yerr.shape[0] == 100
 
+    # test single LC simulation
+    t, y, yerr = gpSimRand(dho2, 20, 365 * 10.0, 150, nLC=1, season=False)
+    assert t.shape[0] == y.shape[0] == yerr.shape[0] == 150
+
 
 def test_simByT():
     """Test function gpSimByT."""
@@ -62,6 +66,9 @@ def test_simByT():
         assert np.sum(yOut[0] < 0) > 0
         assert (np.argsort(yOut - yerrOut) == np.argsort(np.abs(yerrOut))).all()
         assert np.allclose(np.median(np.abs(yerrOut)), amp / SNR, rtol=0.2)
+
+    tOut, yOut, yerrOut = gpSimByT(dho2, SNR, t, nLC=1)
+    assert tOut.shape[0] == yOut.shape[0] == yerrOut.shape[0] == t.shape[0]
 
 
 def test_drwFit():
