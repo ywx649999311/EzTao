@@ -1,8 +1,9 @@
 import numpy as np
+from numpy.polynomial import polynomial as P
 from celerite import terms
 from numba import njit, float64, complex128, int32, vectorize
 
-__all__ = ["acf", "DRW_term", "DHO_term", "CARMA_term"]
+__all__ = ["acf", "DRW_term", "DHO_term", "CARMA_term", "fcoeffs2coeffs"]
 
 
 @njit(complex128[:](complex128[:]))
@@ -12,6 +13,7 @@ def _compute_roots(coeffs):
     # find roots using np and make roots that are almost real real
     roots = np.roots(coeffs)
     roots[np.abs(roots.imag) < 1e-10] = roots[np.abs(roots.imag) < 1e-10].real
+    roots = roots[roots.real.argsort()]  # acsending sort by real part
 
     return roots
 
@@ -19,6 +21,35 @@ def _compute_roots(coeffs):
 @njit(float64[:](float64[:]))
 def _compute_exp(params):
     return np.exp(params)
+
+
+@njit(float64[:](float64[:], float64[:]))
+def polymul(poly1, poly2):
+    poly1_len = poly1.shape[0]
+    poly2_len = poly2.shape[0]
+    c = np.zeros(poly1_len + poly2_len - 1)
+
+    for i in np.arange(poly1_len):
+        for j in np.arange(poly2_len):
+            c[i + j] += poly1[i] * poly2[j]
+    return c
+
+
+@njit(float64[:](float64[:]))
+def fcoeffs2coeffs(fcoeffs):
+    """Convert from factored poly coeffs to the coeffs of the produce."""
+    size = fcoeffs.shape[0] - 1
+    odd = np.bool(size & 0x1)
+    nPair = size // 2
+    poly = fcoeffs[-1:]
+
+    if odd:
+        poly = polymul(poly, np.array([fcoeffs[-2], 1.0]))
+
+    for p in np.arange(nPair):
+        poly = polymul(poly, np.array([fcoeffs[p * 2], fcoeffs[p * 2 + 1], 1.0]))
+
+    return poly
 
 
 @njit(complex128[:](complex128[:], float64[:], float64[:]))
@@ -86,6 +117,14 @@ class DRW_term(terms.Term):
 
         return np.exp(log_sigma)
 
+    @property
+    def p(self):
+        return 1
+
+    @property
+    def q(self):
+        return 0
+
 
 class CARMA_term(terms.Term):
     """General CARMA term with arbitray parameters.
@@ -102,48 +141,69 @@ class CARMA_term(terms.Term):
         arpar_names = ("log_a1",)
         mapar_names = ("log_b0",)
 
-        self.arpars = _compute_exp(np.array(log_arpars))
-        self.mapars = _compute_exp(np.array(log_mapars))
-        self.p = len(self.arpars)
-        self.q = len(self.mapars) - 1
-        # self._roots = _compute_roots(np.append([1 + 0j], self.arpars))
-
-        # combine ar and ma params into one array
+        # set order & trigger roots/acf computation
         log_pars = np.append(log_arpars, log_mapars)
+        self._p = len(log_arpars)
+        self._q = len(log_mapars) - 1
+        self._dim = self._p + self._q + 1
+        self._compute(log_pars)
+
+        # check if stationary
+        self._arroots = _compute_roots(np.append([1 + 0j], self._pars[: self._p]))
+        if (self._arroots.real > 0).any():
+            print("Warning: CARMA process is not stationary!")
 
         # loop over par array to find out how many params
-        for i in range(2, self.p + 1):
+        for i in range(2, self._p + 1):
             arpar_names += (arpar_temp.format(i),)
 
-        for i in range(1, self.q + 1):
+        for i in range(1, self._q + 1):
             mapar_names += (mapar_temp.format(i),)
 
         self.parameter_names = arpar_names + mapar_names
         super(CARMA_term, self).__init__(*log_pars, **kwargs)
 
+    @property
+    def p(self):
+        return self._p
+
+    @property
+    def q(self):
+        return self._q
+
+    def _compute(self, params):
+        """Compute important CARMA parameters."""
+        self._pars = _compute_exp(params)
+        self._arroots = _compute_roots(np.append([1 + 0j], self._pars[: self._p]))
+        self.acf = acf(self._arroots, self._pars[: self._p], self._pars[self._p :])
+        self.mask = self._arroots.imag != 0
+
+    def set_log_fcoeffs(self, log_fcoeffs):
+        """Use coeffs of the factored polynomial to set CARMA paramters."""
+        if log_fcoeffs.shape[0] != (self._dim):
+            raise ValueError("Dimension mismatch!")
+
+        fcoeffs = _compute_exp(log_fcoeffs)
+        ARpars = fcoeffs2coeffs(np.append(fcoeffs[: self._p], [1]))[:-1][::-1]
+        MApars = fcoeffs2coeffs(fcoeffs[self._p :])
+        self.set_parameter_vector(np.log(np.append(ARpars, MApars)))
+
     def get_real_coefficients(self, params):
 
-        # get roots and acf
-        self.arpars = _compute_exp(params[: self.p])
-        self.mapars = _compute_exp(params[self.p :])
-        self._roots = _compute_roots(np.append([1 + 0j], self.arpars))
-        self.acf = acf(self._roots, self.arpars, self.mapars)
-
-        self.mask = np.iscomplex(self._roots)
+        # trigger re_compute & get celerite coeffs
+        self._compute(params)
         acf_real = self.acf[~self.mask]
-        roots_real = self._roots[~self.mask]
-        num_real = acf_real.shape[0]
+        roots_real = self._arroots[~self.mask]
 
-        ar = acf_real[:num_real].real
-        cr = -roots_real[:num_real].real
+        ar = acf_real[:].real
+        cr = -roots_real[:].real
 
         return (ar, cr)
 
     def get_complex_coefficients(self, params):
 
-        # mask = np.iscomplex(self._roots)
         acf_complex = self.acf[self.mask]
-        roots_complex = self._roots[self.mask]
+        roots_complex = self._arroots[self.mask]
 
         ac = 2 * acf_complex[::2].real
         bc = 2 * acf_complex[::2].imag
