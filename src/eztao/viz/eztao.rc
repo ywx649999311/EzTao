@@ -251,7 +251,7 @@ font.family   : sans-serif
 #font.variant : normal
 #font.weight  : 100
 #font.stretch : normal
-font.size     : 20.0
+font.size     : 18.0
 
 #font.serif      : DejaVu Serif, Bitstream Vera Serif, Computer Modern Roman, New Century Schoolbook, Century Schoolbook L, Utopia, ITC Bookman, Bookman, Nimbus Roman No9 L, Times New Roman, Times, Palatino, Charter, serif
 #font.sans-serif : DejaVu Sans, Bitstream Vera Sans, Computer Modern Sans Serif, Lucida Grande, Verdana, Geneva, Lucid, Arial, Helvetica, Avant Garde, sans-serif
@@ -275,7 +275,7 @@ font.size     : 20.0
 ## See following links for more information on LaTex properties:
 ## https://matplotlib.org/tutorials/text/usetex.html
 ## https://scipy-cookbook.readthedocs.io/items/idx_matplotlib_typesetting.html
-text.usetex : True     ## use latex for all text handling. The following fonts
+#text.usetex : True     ## use latex for all text handling. The following fonts
                         ## are supported through the usual rc parameter settings:
                         ## new century schoolbook, bookman, times, palatino,
                         ## zapf chancery, charter, serif, sans-serif, helvetica,
@@ -349,26 +349,26 @@ text.usetex : True     ## use latex for all text handling. The following fonts
 ## https://matplotlib.org/api/axes_api.html#module-matplotlib.axes
 #axes.facecolor     : white   ## axes background color
 #axes.edgecolor     : black   ## axes edge color
-axes.linewidth      : 1.2     ## edge linewidth
+axes.linewidth      : 1.1     ## edge linewidth
 #axes.grid          : False   ## display grid or not
 #axes.grid.axis     : both    ## which axis the grid should apply to
 #axes.grid.which    : major   ## gridlines at {major, minor, both} ticks
 #axes.titlelocation : center  ## alignment of the title: {left, right, center}
-axes.titlesize      : 24      ## fontsize of the axes title
-#axes.titleweight   : normal  ## font weight of title
+axes.titlesize      : 16      ## fontsize of the axes title
+axes.titleweight    : normal  ## font weight of title
 #axes.titlecolor    : auto    ## color of the axes title, auto falls back to text.color
                               ## as default value
-axes.titlepad      : 12.0     ## pad between axes and title in points
-axes.labelsize      : 20      ## fontsize of the x any y labels
-#axes.labelpad      : 4.0     ## space between label and axis
-#axes.labelweight   : normal  ## weight of the x and y labels
+axes.titlepad       : 11.0     ## pad between axes and title in points
+axes.labelsize      : 14.0      ## fontsize of the x any y labels
+axes.labelpad       : 6.0     ## space between label and axis
+axes.labelweight    : 200     ## weight of the x and y labels
 #axes.labelcolor    : black
 #axes.axisbelow     : line    ## draw axis gridlines and ticks:
                               ##     - below patches (True)
                               ##     - above patches but below lines ('line')
                               ##     - above all (False)
 
-#axes.formatter.limits : -99, 99    ## use scientific notation if log10
+axes.formatter.limits : -99, 99     ## use scientific notation if log10
                                     ## of the axis range is smaller than the
                                     ## first or larger than the second
 #axes.formatter.use_locale : False  ## When True, format tick labels
@@ -407,8 +407,8 @@ axes.formatter.useoffset : False  ## If True, the tick label formatter
 #axes.autolimit_mode : data  ## How to scale axes limits to the data.  By using:
                              ##     - "data" to use data limits, plus some margin
                              ##     - "round_numbers" move to the nearest "round" number
-#axes.xmargin   : .05   ## x margin.  See `axes.Axes.margins`
-#axes.ymargin   : .05   ## y margin.  See `axes.Axes.margins`
+axes.xmargin   : .08   ## x margin.  See `axes.Axes.margins`
+axes.ymargin   : .08   ## y margin.  See `axes.Axes.margins`
 #polaraxes.grid : True  ## display grid on polar axes
 #axes3d.grid    : True  ## display grid on 3d axes
 
@@ -449,7 +449,7 @@ xtick.minor.width    : 0.8       ## minor tick width in points
 xtick.major.pad      : 6       ## distance to major tick label in points
 #xtick.minor.pad     : 3.4     ## distance to the minor tick label in points
 #xtick.color         : black   ## color of the tick labels
-xtick.labelsize      : 19      ## fontsize of the tick labels
+xtick.labelsize      : 12      ## fontsize of the tick labels
 xtick.direction      : in      ## direction: {in, out, inout}
 xtick.minor.visible  : True    ## visibility of minor ticks on x-axis
 #xtick.major.top     : True    ## draw x axis top major ticks
@@ -469,7 +469,7 @@ ytick.minor.width    : 0.8       ## minor tick width in points
 ytick.major.pad      : 6       ## distance to major tick label in points
 #ytick.minor.pad     : 3.4     ## distance to the minor tick label in points
 #ytick.color         : black   ## color of the tick labels
-ytick.labelsize      : 19      ## fontsize of the tick labels
+ytick.labelsize      : 12      ## fontsize of the tick labels
 ytick.direction      : in      ## direction: {in, out, inout}
 ytick.minor.visible  : True    ## visibility of minor ticks on y-axis
 #ytick.major.left    : True    ## draw y axis left major ticks
@@ -501,17 +501,17 @@ ytick.minor.visible  : True    ## visibility of minor ticks on y-axis
 #legend.shadow        : False    ## if True, give background a shadow effect
 legend.numpoints      : 1        ## the number of marker points in the legend line
 #legend.scatterpoints : 1        ## number of scatter points
-#legend.markerscale   : 1.0      ## the relative size of legend markers vs. original
-legend.fontsize       : 20
+legend.markerscale    : 3.0      ## the relative size of legend markers vs. original
+legend.fontsize       : 12
 #legend.title_fontsize : None    ## None sets to the same as the default axes.
 
 ## Dimensions as fraction of fontsize:
-#legend.borderpad     : 0.4  ## border whitespace
+legend.borderpad      : 0.5  ## border whitespace
 #legend.labelspacing  : 0.5  ## the vertical space between the legend entries
-#legend.handlelength  : 2.0  ## the length of the legend lines
+legend.handlelength   : 1.5  ## the length of the legend lines
 #legend.handleheight  : 0.7  ## the height of the legend handle
-#legend.handletextpad : 0.8  ## the space between the legend line and legend text
-#legend.borderaxespad : 0.5  ## the border between the axes and legend edge
+legend.handletextpad  : 0.6  ## the space between the legend line and legend text
+legend.borderaxespad  : 0.8  ## the border between the axes and legend edge
 #legend.columnspacing : 2.0  ## column separation
 
 
@@ -519,10 +519,10 @@ legend.fontsize       : 20
 ## * FIGURE                                                                  *
 ## ***************************************************************************
 ## See https://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure
-figure.titlesize    : 24        ## size of the figure title (``Figure.suptitle()``)
-#figure.titleweight : normal    ## weight of the figure title
-figure.figsize      : 8, 6     ## figure size in inches
-figure.dpi         : 100       ## figure dots per inch
+figure.titlesize    : 15        ## size of the figure title (``Figure.suptitle()``)
+figure.titleweight  : 500    ## weight of the figure title
+figure.figsize      : 6.4, 4.8     ## figure size in inches
+figure.dpi          : 100       ## figure dots per inch
 #figure.facecolor   : white     ## figure facecolor
 #figure.edgecolor   : white     ## figure edgecolor
 #figure.frameon     : True      ## enable figure frame
@@ -535,9 +535,9 @@ figure.dpi         : 100       ## figure dots per inch
 #figure.subplot.right  : 0.9    ## the right side of the subplots of the figure
 #figure.subplot.bottom : 0.11   ## the bottom of the subplots of the figure
 #figure.subplot.top    : 0.88   ## the top of the subplots of the figure
-figure.subplot.wspace  : 0.15   ## the amount of width reserved for space between subplots,
+#figure.subplot.wspace  : 0.15   ## the amount of width reserved for space between subplots,
                                 ## expressed as a fraction of the average axis width
-figure.subplot.hspace  : 0.15   ## the amount of height reserved for space between subplots,
+#figure.subplot.hspace  : 0.15   ## the amount of height reserved for space between subplots,
                                 ## expressed as a fraction of the average axis height
 
 ## Figure layout
@@ -584,7 +584,7 @@ figure.subplot.hspace  : 0.15   ## the amount of height reserved for space betwe
 ## ***************************************************************************
 ## * HISTOGRAM PLOTS                                                         *
 ## ***************************************************************************
-hist.bins : 30   ## The default number of histogram bins or 'auto'.
+#hist.bins : 30   ## The default number of histogram bins or 'auto'.
 
 
 ## ***************************************************************************
@@ -687,7 +687,7 @@ savefig.dpi        : 300         ## figure dots per inch or 'figure'
 ## See https://matplotlib.org/tutorials/text/pgf.html for more information.
 #pgf.rcfonts : True
 #pgf.preamble :          ## See text.latex.preamble for documentation
-#pgf.texsystem : xelatex
+pgf.texsystem : pdflatex
 
 ### docstring params
 ##docstring.hardcopy = False  ## set this when you want to generate hardcopy docstring
