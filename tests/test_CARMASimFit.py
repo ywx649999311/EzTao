@@ -129,5 +129,12 @@ def test_carmaFit():
         assert np.percentile(diff, 75) < 0.1
 
     # use min opt, pass if no error thrown
-    for i in range(10):
-        carma_fit(t[i * 5], y[i * 5], yerr[i * 5], 2, 1, de=False)
+    for i in range(5):
+        try:
+            carma_fit(t[i * 5], y[i * 5], yerr[i * 5], 3, 2, de=False)
+            carma_fit(t[i * 5], y[i * 5], yerr[i * 5], 3, 0)
+        except ValueError as ve:
+            if "violates bound" in ve.message:
+                print(ve.message)
+            else:
+                raise ValueError("Unrecognized ValueEroor!")

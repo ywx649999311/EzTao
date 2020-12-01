@@ -4,8 +4,6 @@ import numpy as np
 import celerite
 from ..carma.CARMATerm import *
 
-mpl.rc_file("eztao.rc")
-
 
 def plot_drw_ll(
     t,
@@ -16,50 +14,45 @@ def plot_drw_ll(
     prob_func,
     amp_range=None,
     tau_range=None,
-    nLevels=20,
+    nLevels=10,
     **kwargs,
 ):
-    """
-    Plot DRW likelihood surface
+    """Plot DRW likelihood surface.
 
     Args:
-        t (array-like): An array of time points
-        y (array-like): An array of fluxes at the abvoe time points
-        yerr (array-like): An array of photometric errors
-        best_params (array-like): Best-fit parameters in [amp, tau]
-        gp (object): A DRW celerite GP object
-        prob_func (func): Posterior/Likelihood function with 
-            args=(params, y, yerr, gp)
-        amp_range (array-like, optional): The range of parameters to eval 
-            probability. Defaults to None.
-        tau_range (array-like, optional): The range of parameters to eval 
-            probability. Defaults to None.
-        nLevels (int, optional): Contour plot number of levels. Defaults to 20.
-    
+        t (object): An array of time points.
+        y (object): An array of fluxes at the abvoe time points.
+        yerr (object): An array of photometric errors.
+        best_params (object): Best-fit parameters in [amp, tau].
+        gp (object): A DRW celerite GP object.
+        prob_func (func): Posterior/Likelihood function with args=(params, y, yerr, gp)
+        amp_range (object, optional): The range of parameters to evaluate likelihod.
+            Defaults to None.
+        tau_range (object, optional): The range of parameters to evaluate likelihod.
+            Defaults to None.
+        nLevels (int, optional): The number of levels in the coutour plot.
+            Defaults to 10.
+
     Kwargs:
-        grid_size (int): The number of points to eval likelihood along a 
-            given axis.
-        true_params (array-like): The true parameters if the given light curve 
-            is simulated.
+        grid_size (int): The number of points to evaluate likelihood along a given axis.
+        true_params (object): The true DRW parameters of the provided light curve.
     """
     best_amp, best_tau = best_params
-    grid_size = 50
+    grid_size = 40
 
     if amp_range is None:
-        amp_range = [0.5 * best_amp, 1.5 * best_amp]
+        amp_range = [best_amp / np.e, np.e * best_amp]
     if tau_range is None:
-        tau_range = [0.5 * best_tau, 1.5 * best_tau]
+        tau_range = [best_tau / np.e, np.e * best_tau]
 
     # check if custom resoultion
     if "grid_size" in kwargs:
         grid_size = int(kwargs.get("grid_size"))
 
-    taus = np.log(
-        np.logspace(np.log10(tau_range[0]), np.log10(tau_range[1]), grid_size)
-    )
-    amps = np.log(np.linspace(amp_range[0], amp_range[1], grid_size))
+    log_taus = np.linspace(np.log(tau_range[0]), np.log(tau_range[1]), grid_size)
+    log_amps = np.linspace(np.log(amp_range[0]), np.log(amp_range[1]), grid_size)
 
-    param_grid = np.meshgrid(amps, taus)  # log scale
+    param_grid = np.meshgrid(log_amps, log_taus)  # log scale
     reg_param_grid = np.exp(param_grid)  # normal scale
 
     # flatten to list
@@ -68,39 +61,68 @@ def plot_drw_ll(
     # run in bulk
     gp.compute(t, yerr)
     vec_neg_ll = np.vectorize(prob_func, excluded=[1, 2, 3], signature="(n)->()")
-    bulk_lp = np.negative(vec_neg_ll(ls_params_combo, y, yerr, gp))
-    lp_reshape = bulk_lp.reshape((grid_size, grid_size))
+    bulk_ll = np.negative(vec_neg_ll(ls_params_combo, y, yerr, gp))
+    ll_reshape = bulk_ll.reshape((grid_size, grid_size))
 
     # normalize, better contours
-    max_ll, min_ll = np.max(bulk_lp), np.min(bulk_lp)
-    log_levels = (
-        1
-        + max_ll
-        - np.sort(np.logspace(0, np.log(max_ll - min_ll), nLevels, base=np.e))[::-1]
+    max_ll, min_ll = np.max(bulk_ll), np.min(bulk_ll)
+    ll_range = max_ll - min_ll
+    divnorm = mpl.colors.DivergingNorm(
+        vmin=min_ll, vmax=max_ll + 1, vcenter=(5 + max_ll - 0.02 * ll_range)
     )
-    norm = mpl.colors.SymLogNorm(
-        linthresh=np.abs(max_ll), linscale=1, vmin=min_ll, vmax=max_ll + 1, base=np.e
-    )
-    fig = plt.figure(figsize=(8, 5), dpi=100)
-    _ = plt.contourf(
-        reg_param_grid[0],
-        reg_param_grid[1],
-        lp_reshape,
-        log_levels,
-        norm=norm,
+
+    # compute contour levels
+    delta_levels = np.exp(np.linspace(0, np.log(ll_range), 10, endpoint=False))
+    levels = max_ll - delta_levels
+    levels = levels[::-1]
+
+    # plot the main axes
+    fig = plt.figure(dpi=150)
+    ax = fig.add_axes([0.1, 0.1, 0.6, 0.8])
+    img = plt.contourf(
+        param_grid[0],
+        param_grid[1],
+        ll_reshape,
+        levels,
+        norm=divnorm,
         extend="both",
+        alpha=0.9,
     )
-    plt.title("Likelihood Surface")
-    plt.xlabel("Amp")
-    plt.ylabel("Tau")
-    plt.scatter(best_params[0], best_params[1], marker="*", s=200, label="Best-fit")
+    plt.contour(
+        param_grid[0], param_grid[1], ll_reshape, levels, colors=("k",), linewidths=0.5
+    )
+    ax.yaxis.set_major_locator(plt.MaxNLocator(7, prune="both"))
+    ax.xaxis.set_major_locator(plt.MaxNLocator(5))
+
+    # colorbar
+    cbar_ax = fig.add_axes([0.74, 0.1, 0.03, 0.8])
+    cbar = plt.colorbar(img, cax=cbar_ax, format="%.f")
+    cbar.minorticks_off()
+
+    ax.scatter(
+        np.log(best_params[0]),
+        np.log(best_params[1]),
+        marker="*",
+        s=150,
+        label="Best-fit",
+        zorder=10,
+    )
 
     if "true_params" in kwargs:
         true_params = kwargs.get("true_params")
-        plt.scatter(true_params[0], true_params[1], marker="*", s=200, label="True")
+        ax.scatter(
+            np.log(true_params[0]),
+            np.log(true_params[1]),
+            marker="*",
+            s=150,
+            label="True",
+            zorder=10,
+        )
 
-    plt.colorbar(_, format="%.0f")
-    plt.legend()
+    ax.set_title("Loglikelihood Surface")
+    ax.set_xlabel(r"$Log$(Amplitude)")
+    ax.set_ylabel(r"$Log\/(\tau)$")
+    ax.legend(markerscale=1)
 
 
 def plot_dho_ll(
@@ -113,32 +135,30 @@ def plot_dho_ll(
     inner_dim=10,
     outer_dim=4,
     ranges=[(None, None), (None, None), (None, None), (None, None)],
-    nLevels=20,
+    nLevels=10,
     **kwargs,
 ):
     """
     Plot DHO likelihood surface
 
     Args:
-        t (array-like): An array of time points
-        y (array-like): An array of fluxes at the abvoe time points
-        yerr (array-like): An array of photometric errors
-        best_params (array-like): Best-fit parameters in [a1, a2, b0, b1]
+        t (object): An array of time points
+        y (object): An array of fluxes at the abvoe time points
+        yerr (object): An array of photometric errors
+        best_params (object): Best-fit parameters in [a1, a2, b0, b1]
         gp (object): A DRW celerite GP object
-        prob_func (func): Posterior/Likelihood function with 
-            args=(params, y, yerr, gp)
-        inner_dim (int, optional): The number of points to eval likelihood along 
+        prob_func (func): Posterior/Likelihood function with args=(params, y, yerr, gp)
+        inner_dim (int, optional): The number of points to eval likelihood along
             a1 and a2. Defaults to 10.
-        outer_dim (int, optional): The number of points to eval likelihood along 
+        outer_dim (int, optional): The number of points to eval likelihood along
             b0 and b1. Defaults to 4.
-        ranges (list, optional): Parameters range (log) within which to plot 
-            the surface. Defaults to [(None, None), (None, None), (None, None), 
+        ranges (list, optional): Parameters range (log) within which to plot
+            the surface. Defaults to [(None, None), (None, None), (None, None),
             (None, None)].
-        nLevels (int, optional): Contour plot number of levels. Defaults to 20.
-   
+        nLevels (int, optional): Contour plot number of levels. Defaults to 10.
+
     Kwargs:
-        true_params (array-like): The true parameters in log scale if the 
-            given light curve is simulated.
+        true_params (object): The true parameters of the underlying DHO process if known.
     """
     best_log = np.log(best_params)
     num_param = len(best_log)
@@ -180,6 +200,7 @@ def plot_dho_ll(
     ls_param_combos = list(param_combos)
 
     # run in bulk
+    gp.set_parameter_vector(best_log)
     gp.compute(t, yerr)
     bulk_ll = np.negative(vec_neg_ll(ls_param_combos, y, yerr, gp))
 
@@ -187,23 +208,28 @@ def plot_dho_ll(
     dims = np.empty(num_param, dtype=np.int)
     dims[inner_grid_params] = inner_dim
     dims[outer_grid_params] = outer_dim
-
     ll_reshape = bulk_ll.reshape(tuple(dims))
+
+    # normalize & compute contour levels
     max_ll, min_ll = np.max(bulk_ll), np.min(bulk_ll)
+    ll_range = max_ll - min_ll
+    delta_levels = np.exp(np.linspace(0, np.log(ll_range), 10, endpoint=False))
+    levels = max_ll - delta_levels
+    levels = levels[::-1]
+    divnorm = mpl.colors.DivergingNorm(
+        vmin=min_ll, vmax=max_ll + 1, vcenter=(5 + max_ll - 0.1 * ll_range)
+    )
+
+    # determine the frame containing the best ll
     idx_max = np.unravel_index(
         np.argmax(np.median(ll_reshape, axis=(0, 1)), axis=None), (outer_dim, outer_dim)
     )
-    log_levels = (
-        1 + max_ll - np.sort(np.logspace(0, np.log10(max_ll - min_ll), nLevels))[::-1]
-    )
 
     # plot
-    figsize = (outer_dim * 5, outer_dim * 5)
     fig, axs = plt.subplots(
-        outer_dim, outer_dim, figsize=figsize, sharey=True, sharex=True
+        outer_dim, outer_dim, figsize=(9, 8), sharey=True, sharex=True, dpi=200
     )
     images = {}
-
     b0s = grid_ls[2]
     b1s = grid_ls[3]
 
@@ -214,190 +240,82 @@ def plot_dho_ll(
                 param_grid[0][:, :, i, j],
                 param_grid[1][:, :, i, j],
                 ll_reshape[:, :, i, j],
-                log_levels,
+                levels,
                 extend="both",
             )
             images[f"{i}_{j}"] = _
             axs[i, j].scatter(
-                best_log[0], best_log[1], marker="*", s=200, label="LL best-fit"
+                best_log[0], best_log[1], marker="*", s=100, c="b", alpha=0.8
             )
             if "true_params" in kwargs:
                 true_params = kwargs.get("true_params")
                 axs[i, j].scatter(
-                    true_params[0], true_params[1], marker="*", s=200, label="True"
+                    true_params[0],
+                    true_params[1],
+                    marker="*",
+                    s=100,
+                    label="True",
+                    c="orange",
                 )
-
-            axs[i, j].set_title(
-                f"log(b0):{b0s[i]:.2f};log(b1):{b1s[j]:.2f}", fontsize=18
+            axs[i, j].text(
+                0.1,
+                0.8,
+                f"log(b0):{b0s[i]:.2f}\nlog(b1):{b1s[j]:.2f}",
+                fontdict={"size": 6, "color": "w", "weight": 550},
+                transform=axs[i, j].transAxes,
             )
 
     # reset the norm
-    norm = mpl.colors.SymLogNorm(
-        linthresh=np.abs(max_ll), linscale=1, vmin=min_ll, vmax=max_ll + 1, base=10
-    )
+    plt.subplots_adjust(hspace=0, wspace=0)
     for key in images:
-        images[key].set_norm(norm)
+        images[key].set_norm(divnorm)
 
     fig.colorbar(
         images[f"{idx_max[0]}_{idx_max[1]}"], ax=axs, fraction=0.05, format="%.0f"
     )
-    fig.text(0.5, 0.06, "log(a1)", ha="center", fontsize=25)
-    fig.text(0.06, 0.5, "log(a2)", va="center", rotation="vertical", fontsize=25)
-    axs[idx_max[0], idx_max[1]].legend()
+
+    # title and axis label
+    fig.text(0.46, 0.04, "log(a1)", ha="center", fontsize=15)
+    fig.text(0.04, 0.5, "log(a2)", va="center", rotation="vertical", fontsize=15)
+    axs[idx_max[0], idx_max[1]].scatter(
+        best_log[0], best_log[1], marker="*", s=150, c="r"
+    )
+    fig.suptitle("DHO Loglikelihood Surface", x=0.5, y=0.92)
 
 
-def plot_pred_drw_lc(
-    lc_df, best_amp, best_tau, num_data=500, time_col="t", y_col="y", yerr_col="yerr"
-):
+def plot_pred_lc(t, y, yerr, best_ar, best_ma, t_pred):
     """
-    Plot GP predicted light curve given best-fit parameters. 
+    Plot GP predicted light curve given best-fit parameters.
 
     Args:
         lc_df (dataframe): The dataframe containing the light curve.
-        best_amp (float): Best-fit DRW amplitude.
-        best_tau (float): Best-fit DRW characteristic timescale.
-        num_data (int): The number of points in the predicated LC.
-        time_col (str, optional): Time columne name. Defaults to 't'.
-        y_col (str, optional): Y axis column name. Defaults to 'y'.
-        yerr_col (str, optional): Error column name. Defaults to 'yerr'.
+        best_ar (object): Best-fit CARMA AR parameters in an array.
+        best_ma (object): Best-fit CARMA MA parameters in an array.
+        t_pred (object): Time points at which to generate predictions.
     """
 
-    # get LC data
-    lc_df = lc_df.sort_values(by=time_col).reset_index(drop=True)
-    t = lc_df[time_col].values - lc_df[time_col].min()
-    y = lc_df[y_col].values
-    yerr = lc_df[yerr_col].values
+    assert len(best_ar) >= len(
+        best_ma
+    ), "The dimension of AR must be greater than that of MA"
 
     # create GP model using params
-    kernel = DRW_term(np.log(best_amp), np.log(best_tau))
+    kernel = CARMA_term(np.log(best_ar), np.log(best_ma))
     gp = celerite.GP(kernel, mean=np.mean(y))
-    gp.compute(t, yerr)
-
-    # generate pred LC
-    t_pred = np.linspace(0, np.max(t), num_data)
-    return_var = True
-    try:
-        mu, var = gp.predict(y, t_pred, return_var=return_var)
-        std = np.sqrt(var)
-    except FloatingPointError as e:
-        print(e)
-        print("No variance will be returned")
-        return_var = False
-        mu, var = gp.predict(y, t_pred, return_var=return_var)
-
-    # Plot the data
-    fig = plt.figure(figsize=(10, 5))
-    color = "#ff7f0e"
-    plt.errorbar(t, y, yerr=yerr, fmt=".k", capsize=0, label="Input Data")
-    plt.plot(t_pred, mu, color=color, label="Mean Prection")
-    if return_var:
-        plt.fill_between(
-            t_pred, mu + std, mu - std, color=color, alpha=0.3, edgecolor="none"
-        )
-    plt.ylabel(r"Flux (arb. unit)")
-    plt.xlabel(r"Time (day)")
-    plt.gca().yaxis.set_major_locator(plt.MaxNLocator(5))
-    plt.title("Maximum Likelihood Prediction")
-    plt.tight_layout()
-
-
-def plot_pred_dho_lc(
-    lc_df, best_params, num_data=500, time_col="t", y_col="y", yerr_col="yerr"
-):
-    """
-    Plot GP predicted light curve given best-fit parameters. 
-
-    Args:
-        lc_df (dataframe): The dataframe containing the light curve.
-        best_params (array-like): Best-fit DHO parameters.
-        num_data (int): The number of points in the predicated LC.
-        time_col (str, optional): Time columne name. Defaults to 't'.
-        y_col (str, optional): Y axis column name. Defaults to 'y'.
-        yerr_col (str, optional): Error column name. Defaults to 'yerr'.
-    """
-
-    # get LC data
-    lc_df = lc_df.sort_values(by=time_col).reset_index(drop=True)
-    t = lc_df[time_col].values - lc_df[time_col].min()
-    y = lc_df[y_col].values
-    yerr = lc_df[yerr_col].values
-
-    # create GP model using params
-    kernel = DHO_term(*np.log(best_params))
-    gp = celerite.GP(kernel, mean=np.mean(y))
-    gp.compute(t, yerr)
-
-    # generate pred LC
-    t_pred = np.linspace(0, np.max(t), num_data)
-    return_var = True
-    try:
-        mu, var = gp.predict(y, t_pred, return_var=return_var)
-        std = np.sqrt(var)
-    except FloatingPointError as e:
-        print(e)
-        print("No variance will be returned")
-        return_var = False
-        mu, var = gp.predict(y, t_pred, return_var=return_var)
-
-    # Plot the data
-    fig = plt.figure(figsize=(10, 5))
-    color = "#ff7f0e"
-    plt.errorbar(t, y, yerr=yerr, fmt=".k", capsize=0, label="Input Data")
-    plt.plot(t_pred, mu, color=color, label="Mean Prection")
-    if return_var:
-        plt.fill_between(
-            t_pred, mu + std, mu - std, color=color, alpha=0.3, edgecolor="none"
-        )
-    plt.ylabel(r"Flux (arb. unit)")
-    plt.xlabel(r"Time (day)")
-    plt.gca().yaxis.set_major_locator(plt.MaxNLocator(5))
-    plt.title("Maximum Likelihood Prediction")
-    plt.tight_layout()
-
-
-def plot_pred_lc(
-    lc_df, best_params, p, q, num_data=500, time_col="t", y_col="y", yerr_col="yerr"
-):
-    """
-    Plot GP predicted light curve given best-fit parameters. 
-
-    Args:
-        lc_df (dataframe): The dataframe containing the light curve.
-        best_params (array-like): Best-fit CARMA parameters.
-        p (int): CARMA p order.
-        q (int): CARMA q order.
-        num_data (int): The number of points in the predicated LC.
-        time_col (str, optional): Time columne name. Defaults to 't'.
-        y_col (str, optional): Y axis column name. Defaults to 'y'.
-        yerr_col (str, optional): Error column name. Defaults to 'yerr'.
-    """
-
-    assert len(best_params) == int(p + q + 1)
-
-    # get LC data
-    lc_df = lc_df.sort_values(by=time_col).reset_index(drop=True)
-    t = lc_df[time_col].values - lc_df[time_col].min()
-    y = lc_df[y_col].values
-    yerr = lc_df[yerr_col].values
-
-    # create GP model using params
-    kernel = CARMA_term(np.log(best_params[:p]), np.log(best_params[p:]))
-    gp = celerite.GP(kernel, mean=np.mean(y))
-    compute = True
     compute_ct = 0
 
-    # compute can't factorize, try 4 more times
-    while compute & (compute_ct < 5):
-        compute_ct += 1
+    # if compute can't factorize, try 4 more times
+    while compute_ct < 5:
         try:
             gp.compute(t, yerr)
-            compute = False
+            compute_ct += 5
         except celerite.solver.LinAlgError:
-            new_params = np.log(best_params) + 1e-6 * np.random.randn(p + q + 1)
+            compute_ct += 1
+            new_params = np.log(
+                np.concatenate([best_ar, best_ma])
+            ) + 1e-6 * np.random.randn(len(best_ar) + len(best_ma))
             gp.set_parameter_vector(new_params)
 
     # generate pred LC
-    t_pred = np.linspace(0, np.max(t), num_data)
     return_var = True
     try:
         mu, var = gp.predict(y, t_pred, return_var=return_var)
@@ -409,16 +327,21 @@ def plot_pred_lc(
         mu, var = gp.predict(y, t_pred, return_var=return_var)
 
     # Plot the data
-    fig = plt.figure(figsize=(10, 5))
+    t_range = t_pred[-1] - t_pred[0]
+    fig, ax = plt.subplots(1, 1, dpi=150, figsize=(8, 4))
     color = "#ff7f0e"
-    plt.errorbar(t, y, yerr=yerr, fmt=".k", capsize=0, label="Input Data")
-    plt.plot(t_pred, mu, color=color, label="Mean Prection")
+    ax.errorbar(
+        t, y, yerr=yerr, fmt=".k", capsize=2, label="Original Data", markersize=3
+    )
+    ax.plot(t_pred, mu, color=color, label="Mean Prediction", alpha=0.8)
     if return_var:
-        plt.fill_between(
+        ax.fill_between(
             t_pred, mu + std, mu - std, color=color, alpha=0.3, edgecolor="none"
         )
-    plt.ylabel(r"Flux (arb. unit)")
-    plt.xlabel(r"Time (day)")
-    plt.gca().yaxis.set_major_locator(plt.MaxNLocator(5))
-    plt.title("Maximum Likelihood Prediction")
-    plt.tight_layout()
+    ax.set_xlim(t_pred[0] - t_range / 50, t_pred[-1] + t_range / 50)
+    ax.set_ylabel(r"Flux (arb. unit)")
+    ax.set_xlabel(r"Time (day)")
+    ax.yaxis.set_major_locator(plt.MaxNLocator(5))
+    ax.set_title("Maximum Likelihood Prediction")
+    ax.legend()
+    fig.tight_layout()
