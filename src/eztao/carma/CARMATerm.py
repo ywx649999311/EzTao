@@ -102,19 +102,21 @@ class DRW_term(terms.Term):
 
     def get_real_coefficients(self, params):
         log_sigma, log_tau = params
-
         return (np.exp(2 * log_sigma), 1 / np.exp(log_tau))
 
     def get_perturb_amp(self):
         """Return the perturbing noise amplitude (b0)."""
         log_sigma, log_tau = self.get_parameter_vector()
+        return self.perturb_amp(log_sigma, log_tau)
 
+    @staticmethod
+    def perturb_amp(log_sigma, log_tau):
+        """Return the perturbing noise amplitude (b0)."""
         return np.exp((2 * log_sigma - np.log(1 / 2) - log_tau) / 2)
 
     def get_rms_amp(self):
         """Return the amplitude of CARMA process."""
         log_sigma, log_tau = self.get_parameter_vector()
-
         return np.exp(log_sigma)
 
     @property
@@ -213,11 +215,19 @@ class CARMA_term(terms.Term):
         return (ac, bc, cc, dc)
 
     def get_rms_amp(self):
-        """Return the amplitude of CARMA process."""
-        # force to recompute acf
-        self.get_all_coefficients()
+        """Return the amplitude of current CARMA process."""
+        log_pars = self.get_parameter_vector()
+        return self.rms_amp(log_pars[: self.p], log_pars[self.p :])
 
-        return np.sqrt(np.abs(np.sum(self.acf)))
+    @staticmethod
+    def rms_amp(log_arpars, log_mapars):
+        """Return the amplitude of a CARMA process."""
+        _p = len(log_arpars)
+        _pars = _compute_exp(np.append(log_arpars, log_mapars))
+        _arroots = _compute_roots(np.append([1 + 0j], _pars[:_p]))
+        _acf = acf(_arroots, _pars[:_p], _pars[_p:])
+
+        return np.sqrt(np.abs(np.sum(_acf)))
 
 
 class DHO_term(CARMA_term):
