@@ -111,7 +111,12 @@ class DRW_term(terms.Term):
 
     @staticmethod
     def perturb_amp(log_sigma, log_tau):
-        """Return the perturbing noise amplitude (b0)."""
+        """Return the perturbing noise amplitude (b0).
+
+        Args:
+            log_sigma(float): Sigma is the standard deviation of the DRW process.
+            log_tau(float): Tau is the characteristic timescale of the DRW process.
+        """
         return np.exp((2 * log_sigma - np.log(1 / 2) - log_tau) / 2)
 
     def get_rms_amp(self):
@@ -221,7 +226,12 @@ class CARMA_term(terms.Term):
 
     @staticmethod
     def rms_amp(log_arpars, log_mapars):
-        """Return the amplitude of a CARMA process."""
+        """Return the amplitude of a CARMA process.
+
+        Args:
+            log_arpars (list): The logarithm of AR coefficients.
+            log_mapars (list): The logarithm of MA coefficients.
+        """
         _p = len(log_arpars)
         _pars = _compute_exp(np.append(log_arpars, log_mapars))
         _arroots = _compute_roots(np.append([1 + 0j], _pars[:_p]))

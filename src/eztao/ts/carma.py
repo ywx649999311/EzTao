@@ -175,7 +175,7 @@ def gpSimByT(carmaTerm, SNR, t, factor=10, nLC=1):
 
 ## Below is about Fitting
 # -------------------------------------------------------------------------------------
-def neg_fcoeff_ll(fcoeffs, y, yerr, gp):
+def neg_fcoeff_ll(fcoeffs, y, gp):
     """CARMA neg log likelihood function.
 
     This method will catch 'overflow/underflow' runtimeWarning and
@@ -184,14 +184,13 @@ def neg_fcoeff_ll(fcoeffs, y, yerr, gp):
     Args:
         fcoeffs (object): Array-like, CARMA polynomial coeffs in the facotrized form.
         y (object): Array-like, y values of the time series.
-        yerr (object): Array-like, error in y values of the time series.
         gp (object): celerite GP model with the proper kernel.
 
     Returns:
         float: neg log likelihood.
     """
 
-    assert gp.kernel.p >= 2, "Use neg_param_ll() instead!"
+    assert gp.kernel.p > 2, "Use neg_param_ll() instead!"
 
     # change few runtimewarning action setting
     notify_method = "raise"
@@ -218,7 +217,7 @@ def neg_fcoeff_ll(fcoeffs, y, yerr, gp):
     return neg_ll
 
 
-def neg_param_ll(params, y, yerr, gp):
+def neg_param_ll(params, y, gp):
     """CARMA neg log likelihood function.
 
     This method will catch 'overflow/underflow' runtimeWarning and
@@ -227,7 +226,6 @@ def neg_param_ll(params, y, yerr, gp):
     Args:
         params (object): Array-like, CARMA parameters.
         y (object): Array-like, y values of the time series.
-        yerr (object): Array-like, error in y values of the time series.
         gp (object): celerite GP model with the proper kernel.
 
     Returns:
@@ -334,11 +332,10 @@ def sample_carma(p, q):
     return ARpars, MApars
 
 
-def _de_opt(y, yerr, best_fit, gp, init_func, mode, debug, bounds):
+def _de_opt(y, best_fit, gp, init_func, mode, debug, bounds):
     """Defferential Evolution optimizer wrapper.
 
     Args:
-        t (object): An array of time stamps in days.
         y (object): An array of y values.
         best_fit (object): An empty array to store best fit parameters.
         gp (object): celerite GP model object.
@@ -353,7 +350,6 @@ def _de_opt(y, yerr, best_fit, gp, init_func, mode, debug, bounds):
     """
 
     # dynamic control of fitting flow
-    rerun = True
     succeded = False  # ever succeded
     run_ct = 0
     jac_log_rec = 10
@@ -362,18 +358,16 @@ def _de_opt(y, yerr, best_fit, gp, init_func, mode, debug, bounds):
     neg_ll = neg_fcoeff_ll if mode == "coeff" else neg_param_ll
 
     # set bound based on LC std for amp
-    while rerun and (run_ct < 5):
+    while run_ct < 5:
         run_ct += 1
-        r = differential_evolution(
-            neg_ll, bounds=bounds, args=(y, yerr, gp), maxiter=200
-        )
+        r = differential_evolution(neg_ll, bounds=bounds, args=(y, gp), maxiter=200)
 
         if r.success:
             succeded = True
             best_fit[:] = np.exp(r.x)
 
             if "jac" not in r.keys():
-                rerun = False
+                run_ct += 5
             else:
                 jac_log = np.log10(np.dot(r.jac, r.jac) + 1e-8)
 
@@ -381,7 +375,7 @@ def _de_opt(y, yerr, best_fit, gp, init_func, mode, debug, bounds):
                 if jac_log > 0:
                     bounds = [(x[0] - 1, x[1] + 1) for x in bounds]
                 else:
-                    rerun = False
+                    run_ct += 5
 
                 # update best-fit if smaller jac found
                 if jac_log < jac_log_rec:
@@ -401,11 +395,10 @@ def _de_opt(y, yerr, best_fit, gp, init_func, mode, debug, bounds):
     return best_fit
 
 
-def _min_opt(y, yerr, best_fit, gp, init_func, mode, debug, bounds, method="L-BFGS-B"):
+def _min_opt(y, best_fit, gp, init_func, mode, debug, bounds, method="L-BFGS-B"):
     """A wrapper for scipy.optimize.minimize.
 
     Args:
-        t (object): An array of time stamps in days.
         y (object): An array of y values.
         best_fit (object): An empty array to store best fit parameters.
         gp (object): celerite GP model object.
@@ -421,7 +414,6 @@ def _min_opt(y, yerr, best_fit, gp, init_func, mode, debug, bounds, method="L-BF
     """
 
     # dynamic control of fitting flow
-    rerun = True
     succeded = False  # ever succeded
     run_ct = 0
     jac_log_rec = 10
@@ -438,14 +430,14 @@ def _min_opt(y, yerr, best_fit, gp, init_func, mode, debug, bounds, method="L-BF
             initial_params,
             method=method,
             bounds=bounds,
-            args=(y, yerr, gp),
+            args=(y, gp),
         )
         if r.success:
             succeded = True
             best_fit[:] = np.exp(r.x)
 
             if "jac" not in r.keys():
-                rerun = False
+                run_ct += 5
             else:
                 jac_log = np.log10(np.dot(r.jac, r.jac) + 1e-8)
 
@@ -453,7 +445,7 @@ def _min_opt(y, yerr, best_fit, gp, init_func, mode, debug, bounds, method="L-BF
                 if jac_log > 0:
                     bounds = [(x[0] - 1, x[1] + 1) for x in bounds]
                 else:
-                    rerun = False
+                    run_ct += 5
 
                 # update best-fit if smaller jac found
                 if jac_log < jac_log_rec:
@@ -511,7 +503,6 @@ def drw_fit(t, y, yerr, debug=False, user_bounds=None):
 
     best_fit_return = _de_opt(
         y,
-        yerr,
         best_fit,
         gp,
         lambda: drw_log_param_init(std),
@@ -558,7 +549,6 @@ def dho_fit(t, y, yerr, debug=False, user_bounds=None):
 
     best_fit_return = _de_opt(
         y,
-        yerr,
         best_fit,
         gp,
         lambda: dho_log_param_init(),
@@ -626,7 +616,6 @@ def carma_fit(t, y, yerr, p, q, de=True, debug=False, mode="coeff", user_bounds=
     if de:
         best_fit_return = _de_opt(
             y,
-            yerr,
             best_fit,
             gp,
             init_func,
@@ -637,7 +626,6 @@ def carma_fit(t, y, yerr, p, q, de=True, debug=False, mode="coeff", user_bounds=
     else:
         best_fit_return = _min_opt(
             y,
-            yerr,
             best_fit,
             gp,
             init_func,
