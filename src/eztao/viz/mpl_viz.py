@@ -138,16 +138,15 @@ def plot_dho_ll(
     nLevels=10,
     **kwargs,
 ):
-    """
-    Plot DHO likelihood surface
+    """Plot DHO likelihood surface.
 
     Args:
-        t (object): An array of time points
-        y (object): An array of fluxes at the abvoe time points
-        yerr (object): An array of photometric errors
-        best_params (object): Best-fit parameters in [a1, a2, b0, b1]
-        gp (object): A DRW celerite GP object
-        prob_func (func): Posterior/Likelihood function with args=(params, y, yerr, gp)
+        t (object): An array of time points.
+        y (object): An array of fluxes at the abvoe time points.
+        yerr (object): An array of photometric errors.
+        best_params (object): Best-fit parameters in [a1, a2, b0, b1].
+        gp (object): A DRW celerite GP object.
+        prob_func (func): Posterior/Likelihood function with args=(params, y, yerr, gp).
         inner_dim (int, optional): The number of points to eval likelihood along
             a1 and a2. Defaults to 10.
         outer_dim (int, optional): The number of points to eval likelihood along
@@ -288,7 +287,9 @@ def plot_pred_lc(t, y, yerr, best_ar, best_ma, t_pred):
     Plot GP predicted light curve given best-fit parameters.
 
     Args:
-        lc_df (dataframe): The dataframe containing the light curve.
+        t (object): An array of time points
+        y (object): An array of fluxes at the abvoe time points
+        yerr (object): An array of photometric errors
         best_ar (object): Best-fit CARMA AR parameters in an array.
         best_ma (object): Best-fit CARMA MA parameters in an array.
         t_pred (object): Time points at which to generate predictions.
