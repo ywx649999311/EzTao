@@ -37,7 +37,8 @@ def gpSimFull(carmaTerm, SNR, duration, N, nLC=1):
         nLC (int, optional): Number of light curves to simulate. Defaults to 1.
 
     Raises:
-        Exception: If celerite cannot factorize after 10 trials.
+        RuntimeError: If the input CARMA term/model is not stable, thus cannot be
+            solved by celerite.
 
     Returns:
         Arrays: t, y and yerr of the simulated light curves in numpy arrays.
@@ -279,10 +280,10 @@ def dho_log_param_init():
         list: The generated DHO parameters in natural log.
     """
 
-    log_a1 = np.random.uniform(-10, 1, 1)[0]
-    log_a2 = np.random.uniform(-14, -3, 1)[0]
-    log_b0 = np.random.uniform(-10, -5, 1)[0]
-    log_b1 = np.random.uniform(-10, -5, 1)[0]
+    log_a1 = np.random.uniform(-10, 5, 1)[0]
+    log_a2 = np.random.uniform(-10, 0, 1)[0]
+    log_b0 = np.random.uniform(-10, 0, 1)[0]
+    log_b1 = np.random.uniform(-10, 0, 1)[0]
 
     return np.array([log_a1, log_a2, log_b0, log_b1])
 
@@ -296,7 +297,7 @@ def carma_log_param_init(dim):
         list: The generated CAMRA parameters in natural log.
     """
 
-    log_param = np.random.uniform(-5, 2, int(dim))
+    log_param = np.random.uniform(-5, 5, int(dim))
 
     return log_param
 
@@ -536,7 +537,7 @@ def dho_fit(t, y, yerr, debug=False, user_bounds=None):
     if user_bounds is not None and (len(user_bounds) == 4):
         bounds = user_bounds
     else:
-        bounds = [(-10, 7), (-14, 7), (-12, -2), (-11, -2)]
+        bounds = [(-10, 13), (-14, 7), (-10, 6), (-12, 3)]
 
     # re-position lc
     t = t - t[0]
@@ -589,9 +590,9 @@ def carma_fit(t, y, yerr, p, q, de=True, debug=False, mode="coeff", user_bounds=
     if user_bounds is not None and (len(user_bounds) == dim):
         bounds = user_bounds
     elif p == 2 and q == 1:
-        bounds = [(-10, 7), (-14, 7), (-12, -2), (-11, -2)]
+        bounds = [(-10, 13), (-14, 7), (-10, 6), (-12, 3)]
     elif p == 2 and q == 0:
-        bounds = [(-10, 7), (-14, 7), (-12, -2)]
+        bounds = [(-10, 16), (-14, 16), (-13, 15)]
     else:
         ARbounds = [(-6, 1)] * p
         MAbounds = [(-6, -1)] * (q + 1)
