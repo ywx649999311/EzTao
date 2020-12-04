@@ -423,7 +423,7 @@ def _min_opt(y, best_fit, gp, init_func, mode, debug, bounds, method="L-BFGS-B")
     neg_ll = neg_fcoeff_ll if mode == "coeff" else neg_param_ll
 
     # set bound based on LC std for amp
-    while rerun and (run_ct < 5):
+    while run_ct < 5:
         initial_params = init_func()
         run_ct += 1
         r = minimize(
