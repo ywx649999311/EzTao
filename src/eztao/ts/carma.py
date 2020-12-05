@@ -191,29 +191,21 @@ def neg_fcoeff_ll(fcoeffs, y, gp):
         float: neg log likelihood.
     """
 
-    assert gp.kernel.p > 2, "Use neg_param_ll() instead!"
+    assert gp.kernel.p >= 2, "Use neg_param_ll() instead!"
 
     # change few runtimewarning action setting
     notify_method = "raise"
     np.seterr(over=notify_method)
     np.seterr(under=notify_method)
-    trial = 0
     neg_ll = -np.inf
 
-    while trial < 5:
-        trial += 1
-        try:
-            gp.kernel.set_log_fcoeffs(fcoeffs)
-            neg_ll = -gp.log_likelihood(y)
-            break
-        except celerite.solver.LinAlgError:
-            fcoeffs += 1e-6 * np.random.randn(fcoeffs.shape[0])
-            continue
-        except np.linalg.LinAlgError:
-            fcoeffs += 1e-6 * np.random.randn(fcoeffs.shape[0])
-            continue
-        except FloatingPointError:
-            break
+    try:
+        gp.kernel.set_log_fcoeffs(fcoeffs)
+        neg_ll = -gp.log_likelihood(y)
+    except celerite.solver.LinAlgError as c:
+        print(c)
+    except Exception as e:
+        pass
 
     return neg_ll
 
@@ -237,23 +229,16 @@ def neg_param_ll(params, y, gp):
     notify_method = "raise"
     np.seterr(over=notify_method)
     np.seterr(under=notify_method)
-    trial = 0
     neg_ll = -np.inf
 
-    while trial < 5:
-        trial += 1
-        try:
-            gp.set_parameter_vector(params)
-            neg_ll = -gp.log_likelihood(y)
-            break
-        except celerite.solver.LinAlgError:
-            params += 1e-6 * np.random.randn(params.shape[0])
-            continue
-        except np.linalg.LinAlgError:
-            params += 1e-6 * np.random.randn(params.shape[0])
-            continue
-        except FloatingPointError:
-            break
+    try:
+        gp.set_parameter_vector(params)
+        neg_ll = -gp.log_likelihood(y)
+        # break
+    except celerite.solver.LinAlgError as c:
+        print(c)
+    except Exception as e:
+        pass
 
     return neg_ll
 
@@ -334,7 +319,7 @@ def sample_carma(p, q):
 
 
 def _de_opt(y, best_fit, gp, init_func, mode, debug, bounds):
-    """Defferential Evolution optimizer wrapper.
+    """Differential Evolution optimizer wrapper.
 
     Args:
         y (object): An array of y values.
@@ -365,7 +350,11 @@ def _de_opt(y, best_fit, gp, init_func, mode, debug, bounds):
 
         if r.success:
             succeded = True
-            best_fit[:] = np.exp(r.x)
+            if mode == "param":
+                best_fit[:] = np.exp(r.x)
+            else:
+                gp.kernel.set_log_fcoeffs(r.x)
+                best_fit[:] = np.exp(gp.get_parameter_vector())
 
             if "jac" not in r.keys():
                 run_ct += 5
@@ -381,7 +370,7 @@ def _de_opt(y, best_fit, gp, init_func, mode, debug, bounds):
                 # update best-fit if smaller jac found
                 if jac_log < jac_log_rec:
                     jac_log_rec = jac_log
-                    best_fit[:] = np.exp(r.x)
+
         else:
             bounds = [(x[0] - 1, x[1] + 1) for x in bounds]
             gp.set_parameter_vector(init_func())
@@ -396,7 +385,9 @@ def _de_opt(y, best_fit, gp, init_func, mode, debug, bounds):
     return best_fit
 
 
-def _min_opt(y, best_fit, gp, init_func, mode, debug, bounds, method="L-BFGS-B"):
+def _min_opt(
+    y, best_fit, gp, init_func, mode, debug, bounds, n_iter, method="L-BFGS-B"
+):
     """A wrapper for scipy.optimize.minimize.
 
     Args:
@@ -408,24 +399,22 @@ def _min_opt(y, best_fit, gp, init_func, mode, debug, bounds, method="L-BFGS-B")
         mode (str): Specify which space to sample, 'param' or 'coeff'.
         debug (bool, optional): Turn on/off debug mode.
         bounds (list): Initial parameter boundaries for the optimizer.
+        n_iter (int, optional): Number of iterations to run the optimizer.
+            Defaults to 10.
         method (str, optional): Likelihood optimization method.
 
     Returns:
         object: An array of best-fit parameters
     """
 
-    # dynamic control of fitting flow
-    succeded = False  # ever succeded
-    run_ct = 0
-    jac_log_rec = 10
-
     # set the neg_ll function based on mode
     neg_ll = neg_fcoeff_ll if mode == "coeff" else neg_param_ll
 
-    # set bound based on LC std for amp
-    while run_ct < 5:
+    # placeholder for ll and sols
+    ll, sols, rs = [], [], []
+
+    for i in range(n_iter):
         initial_params = init_func()
-        run_ct += 1
         r = minimize(
             neg_ll,
             initial_params,
@@ -433,49 +422,45 @@ def _min_opt(y, best_fit, gp, init_func, mode, debug, bounds, method="L-BFGS-B")
             bounds=bounds,
             args=(y, gp),
         )
+
         if r.success:
-            succeded = True
-            best_fit[:] = np.exp(r.x)
-
-            if "jac" not in r.keys():
-                run_ct += 5
+            if mode == "param":
+                gp.kernel.set_parameter_vector(r.x)
             else:
-                jac_log = np.log10(np.dot(r.jac, r.jac) + 1e-8)
+                gp.kernel.set_log_fcoeffs(r.x)
 
-                # if positive jac, then increase bounds
-                if jac_log > 0:
-                    bounds = [(x[0] - 1, x[1] + 1) for x in bounds]
-                else:
-                    run_ct += 5
-
-                # update best-fit if smaller jac found
-                if jac_log < jac_log_rec:
-                    jac_log_rec = jac_log
-                    best_fit[:] = np.exp(r.x)
+            ll.append(gp.log_likelihood(y))
+            sols.append(np.exp(gp.get_parameter_vector()))
         else:
-            bounds = [(x[0] - 1, x[1] + 1) for x in bounds]
-            gp.set_parameter_vector(init_func())
+            ll.append(-np.inf)
+            sols.append([np.nan] * len(best_fit))
 
-    # If opitimizer never reached minima, assign nan
-    if not succeded:
-        best_fit[:] = np.nan
+        # save all r for debugging
+        rs.append(r)
+
+    best_fit = sols[np.argmax(ll)]
 
     if debug:
-        print(r)
+        print(rs)
 
     return best_fit
 
 
-def drw_fit(t, y, yerr, debug=False, user_bounds=None):
-    """Fix time series to DRW model
+def drw_fit(t, y, yerr, de=True, debug=False, user_bounds=None, n_iter=10):
+    """Fix time series to a DRW model.
 
     Args:
         t (object): An array of time stamps in days.
         y (object): An array of y values.
         yerr (object): An array of the errors in y values.
+        de (bool, optional): Whether to use differential_evolution as the
+            optimizer. Defaults to True.
         debug (bool, optional): Turn on/off debug mode. Defaults to False.
         user_bounds (list, optional): Parameter boundaries for the optimizer.
             Defaults to None.
+        n_iter (int, optional): Number of iterations to run the optimizer if de==False.
+            Defaults to 10.
+
 
     Raises:
         celerite.solver.LinAlgError: For non-positive definite matrices.
@@ -502,29 +487,46 @@ def drw_fit(t, y, yerr, debug=False, user_bounds=None):
     gp = GP(kernel, mean=np.median(y))
     gp.compute(t, yerr)
 
-    best_fit_return = _de_opt(
-        y,
-        best_fit,
-        gp,
-        lambda: drw_log_param_init(std),
-        "param",
-        debug,
-        bounds,
-    )
+    if de:
+        best_fit_return = _de_opt(
+            y,
+            best_fit,
+            gp,
+            lambda: drw_log_param_init(std),
+            "param",
+            debug,
+            bounds,
+        )
+    else:
+        best_fit_return = _min_opt(
+            y,
+            best_fit,
+            gp,
+            lambda: drw_log_param_init(std),
+            "param",
+            debug,
+            bounds,
+            n_iter,
+        )
 
     return best_fit_return
 
 
-def dho_fit(t, y, yerr, debug=False, user_bounds=None):
-    """Fix time series to DHO model
+def dho_fit(t, y, yerr, de=True, debug=False, user_bounds=None, n_iter=10):
+    """Fix time series to a DHO model.
 
     Args:
         t (object): An array of time stamps in days.
         y (object): An array of y values.
         yerr (object): An array of the errors in y values.
+        de (bool, optional): Whether to use differential_evolution as the
+            optimizer. Defaults to True.
         debug (bool, optional): Turn on/off debug mode. Defaults to False.
         user_bounds (list, optional): Parameter boundaries for the optimizer.
             Defaults to None.
+        n_iter (int, optional): Number of iterations to run the optimizer if de==False.
+            Defaults to 10.
+
 
     Raises:
         celerite.solver.LinAlgError: For non-positive definite matrices.
@@ -548,21 +550,35 @@ def dho_fit(t, y, yerr, debug=False, user_bounds=None):
     gp = GP(kernel, mean=np.mean(y))
     gp.compute(t, yerr)
 
-    best_fit_return = _de_opt(
-        y,
-        best_fit,
-        gp,
-        lambda: dho_log_param_init(),
-        "param",
-        debug,
-        bounds,
-    )
+    if de:
+        best_fit_return = _de_opt(
+            y,
+            best_fit,
+            gp,
+            lambda: dho_log_param_init(),
+            "param",
+            debug,
+            bounds,
+        )
+    else:
+        best_fit_return = _min_opt(
+            y,
+            best_fit,
+            gp,
+            lambda: dho_log_param_init(),
+            "param",
+            debug,
+            bounds,
+            n_iter,
+        )
 
     return best_fit_return
 
 
-def carma_fit(t, y, yerr, p, q, de=True, debug=False, mode="coeff", user_bounds=None):
-    """Fit time series to all CARMA model
+def carma_fit(
+    t, y, yerr, p, q, de=True, debug=False, mode="coeff", user_bounds=None, n_iter=10
+):
+    """Fit time series to any CARMA model.
 
     Args:
         t (object): An array of time stamps in days.
@@ -577,6 +593,9 @@ def carma_fit(t, y, yerr, p, q, de=True, debug=False, mode="coeff", user_bounds=
             Defaults to 'coeff'.
         user_bounds (list, optional): Factorized polynomial coefficient boundaries
             for the optimizer. Defaults to None.
+        n_iter (int, optional): Number of iterations to run the optimizer if de==False.
+            Defaults to 10.
+
     Raises:
         celerite.solver.LinAlgError: For non-positive definite matrices.
 
@@ -608,11 +627,10 @@ def carma_fit(t, y, yerr, p, q, de=True, debug=False, mode="coeff", user_bounds=
     gp = GP(kernel, mean=np.median(y))
     gp.compute(t, yerr)
 
-    init_func = (
-        lambda: carma_log_fcoeff_init(dim)
-        if mode == "coeff"
-        else lambda: carma_log_param_init(dim)
-    )
+    if mode == "coeff":
+        init_func = lambda: carma_log_fcoeff_init(dim)
+    else:
+        init_func = lambda: carma_log_param_init(dim)
 
     if de:
         best_fit_return = _de_opt(
@@ -633,6 +651,7 @@ def carma_fit(t, y, yerr, p, q, de=True, debug=False, mode="coeff", user_bounds=
             mode,
             debug,
             bounds,
+            n_iter,
         )
 
     return best_fit_return

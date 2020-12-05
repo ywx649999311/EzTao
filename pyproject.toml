@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "eztao"
-version = "0.2.0"
+version = "0.2.1"
 description = "A toolkit for Active Galactic Nuclei (AGN) time-series analysis."
 authors = ["Weixiang Yu <wy73@drexel.edu>"]
 readme = "README.md"
