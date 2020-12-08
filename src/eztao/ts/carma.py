@@ -197,13 +197,14 @@ def neg_fcoeff_ll(fcoeffs, y, gp):
     notify_method = "raise"
     np.seterr(over=notify_method)
     np.seterr(under=notify_method)
-    neg_ll = -np.inf
+    neg_ll = np.inf
 
     try:
         gp.kernel.set_log_fcoeffs(fcoeffs)
         neg_ll = -gp.log_likelihood(y)
     except celerite.solver.LinAlgError as c:
-        print(c)
+        # print(c)
+        pass
     except Exception as e:
         pass
 
@@ -229,14 +230,15 @@ def neg_param_ll(params, y, gp):
     notify_method = "raise"
     np.seterr(over=notify_method)
     np.seterr(under=notify_method)
-    neg_ll = -np.inf
+    neg_ll = np.inf
 
     try:
         gp.set_parameter_vector(params)
         neg_ll = -gp.log_likelihood(y)
         # break
     except celerite.solver.LinAlgError as c:
-        print(c)
+        # print(c)
+        pass
     except Exception as e:
         pass
 
@@ -312,7 +314,7 @@ def sample_carma(p, q):
         AR parameters and MA paramters in seperate arrays.
     """
     init_fcoeffs = np.exp(carma_log_fcoeff_init(p + q + 1))
-    ARpars = fcoeffs2coeffs(np.append(init_fcoeffs[:p], [1]))[:-1][::-1]
+    ARpars = fcoeffs2coeffs(np.append(init_fcoeffs[:p], [1]))[1:]
     MApars = fcoeffs2coeffs(init_fcoeffs[p:])
 
     return ARpars, MApars
@@ -348,7 +350,7 @@ def _de_opt(y, best_fit, gp, init_func, mode, debug, bounds):
         run_ct += 1
         r = differential_evolution(neg_ll, bounds=bounds, args=(y, gp), maxiter=200)
 
-        if r.success:
+        if r.success and (r.fun != -np.inf):
             succeded = True
             if mode == "param":
                 best_fit[:] = np.exp(r.x)
@@ -423,7 +425,7 @@ def _min_opt(
             args=(y, gp),
         )
 
-        if r.success:
+        if r.success and (r.fun != -np.inf):
             if mode == "param":
                 gp.kernel.set_parameter_vector(r.x)
             else:

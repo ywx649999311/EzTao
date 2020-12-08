@@ -1,5 +1,4 @@
 import numpy as np
-from numpy.polynomial import polynomial as P
 from celerite import terms
 from numba import njit, float64, complex128, int32, vectorize
 
@@ -25,6 +24,8 @@ def _compute_exp(params):
 
 @njit(float64[:](float64[:], float64[:]))
 def polymul(poly1, poly2):
+    poly1 = poly1[::-1]
+    poly2 = poly2[::-1]
     poly1_len = poly1.shape[0]
     poly2_len = poly2.shape[0]
     c = np.zeros(poly1_len + poly2_len - 1)
@@ -32,24 +33,51 @@ def polymul(poly1, poly2):
     for i in np.arange(poly1_len):
         for j in np.arange(poly2_len):
             c[i + j] += poly1[i] * poly2[j]
-    return c
+    return c[::-1]
 
 
 @njit(float64[:](float64[:]))
 def fcoeffs2coeffs(fcoeffs):
-    """Convert from factored poly coeffs to the coeffs of the produce."""
+    """Convert from factored poly coeffs to the coeffs of the product."""
     size = fcoeffs.shape[0] - 1
     odd = np.bool(size & 0x1)
     nPair = size // 2
-    poly = fcoeffs[-1:]
+    poly = fcoeffs[-1:]  # This is always the coeff of highest order term
 
     if odd:
-        poly = polymul(poly, np.array([fcoeffs[-2], 1.0]))
+        poly = polymul(poly, np.array([1.0, fcoeffs[-2]]))
 
     for p in np.arange(nPair):
-        poly = polymul(poly, np.array([fcoeffs[p * 2], fcoeffs[p * 2 + 1], 1.0]))
+        poly = polymul(poly, np.array([1.0, fcoeffs[p * 2], fcoeffs[p * 2 + 1]]))
 
     return poly
+
+
+def _roots2coeff(roots):
+    coeffs = []
+    size = len(roots)
+    odd = np.bool(size & 0x1)
+    # nPair = size // 2
+    rootsComp = roots[roots.imag != 0]
+    rootsReal = roots[roots.imag == 0]
+    nCompPair = len(rootsComp) // 2
+    nRealPair = len(rootsReal) // 2
+
+    for i in range(nCompPair):
+        root1 = rootsComp[i]
+        root2 = rootsComp[i + 1]
+        coeffs.append(-(root1.real + root2.real))
+        coeffs.append((root1 * root2).real)
+
+    for i in range(nRealPair):
+        root1 = rootsReal[i]
+        root2 = rootsReal[i + 1]
+        coeffs.append(-(root1.real + root2.real))
+        coeffs.append((root1 * root2).real)
+
+    if odd:
+        coeffs.append(-rootsReal[-1].real)
+    return coeffs
 
 
 @njit(complex128[:](complex128[:], float64[:], float64[:]))
@@ -168,7 +196,7 @@ class CARMA_term(terms.Term):
             mapar_names += (mapar_temp.format(i),)
 
         self.parameter_names = arpar_names + mapar_names
-        super(CARMA_term, self).__init__(*log_pars, **kwargs)
+        super().__init__(*log_pars, **kwargs)
 
     @property
     def p(self):
@@ -186,12 +214,18 @@ class CARMA_term(terms.Term):
         self.mask = self._arroots.imag != 0
 
     def set_log_fcoeffs(self, log_fcoeffs):
-        """Use coeffs of the factored polynomial to set CARMA paramters."""
+        """
+        Use coeffs of the factored polynomial to set CARMA paramters, note that the
+        last coeff is always the coeff at the highest MA differential. While performing
+        the conversion, a 1 is added to the AR coeffs to maintain the same formatting
+        (AR polynomials always have the highest order coeff be 1).
+
+        """
         if log_fcoeffs.shape[0] != (self._dim):
             raise ValueError("Dimension mismatch!")
 
         fcoeffs = _compute_exp(log_fcoeffs)
-        ARpars = fcoeffs2coeffs(np.append(fcoeffs[: self._p], [1]))[:-1][::-1]
+        ARpars = fcoeffs2coeffs(np.append(fcoeffs[: self._p], [1]))[1:]
         MApars = fcoeffs2coeffs(fcoeffs[self._p :])
         self.set_parameter_vector(np.log(np.append(ARpars, MApars)))
 
@@ -238,6 +272,31 @@ class CARMA_term(terms.Term):
         _acf = acf(_arroots, _pars[:_p], _pars[_p:])
 
         return np.sqrt(np.abs(np.sum(_acf)))
+
+    @staticmethod
+    def carma2fcoeff(log_arpars, log_mapars):
+        """Return the representation of a CARMA model in the polynomical space.
+
+        Args:
+            log_arpars (list): The logarithm of AR coefficients.
+            log_mapars (list): The logarithm of MA coefficients.
+        """
+
+        _p = len(log_arpars)
+        _q = len(log_mapars) - 1
+        _pars = _compute_exp(np.append(log_arpars, log_mapars))
+        _arroots = _compute_roots(np.append([1 + 0j], _pars[:_p]))
+        _maroots = _compute_roots(np.array(_pars[_p:][::-1], dtype=np.complex128))
+        ma_mult = _pars[-1:]
+        ar_coeffs = _roots2coeff(_arroots)
+
+        if _q > 0:
+            ma_coeffs = _roots2coeff(_arroots)
+            ma_coeffs.append(ma_mult)
+        else:
+            ma_coeffs = ma_mult
+
+        return np.append(ar_coeffs, ma_coeffs)
 
 
 class DHO_term(CARMA_term):

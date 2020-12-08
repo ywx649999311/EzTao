@@ -1,5 +1,6 @@
 from eztao.carma.CARMATerm import *
 import numpy as np
+from numpy.polynomial import polynomial as P
 
 # def test_0():
 #     assert 0 == 0
@@ -70,6 +71,21 @@ def test_acf():
 
 def test_coeff_convert():
     """Test the function convertion from factored coeffs to end coeffs."""
-    assert np.allclose(fcoeffs2coeffs(np.array([1.0, 2, 1, 1])), [1, 3, 3, 1])
-    assert np.allclose(fcoeffs2coeffs(np.array([1.0, 2, 1.2])), [1.2, 2.4, 1.2])
-    assert np.allclose(fcoeffs2coeffs(np.array([1.0, 2])), [2, 2])
+    assert np.allclose(
+        fcoeffs2coeffs(np.array([1.0, 2, 1, 1])), P.polymul([1, 1, 2], [1, 1])
+    )
+    assert np.allclose(
+        fcoeffs2coeffs(np.array([1.0, 2, 1.2])), P.polymul([1, 1, 2], 1.2)
+    )
+    assert np.allclose(fcoeffs2coeffs(np.array([1.0, 2])), P.polymul([1, 1], 2))
+
+
+def test_carma2coeff():
+    """Test the function converting a CARMA model into the polynomical space."""
+    kernel1 = CARMA_term(np.log([3, 2.8, 0.8]), np.log([1]))
+    fcoeffs = kernel1.carma2fcoeff(np.log([3, 2.8, 0.8]), np.log([1]))
+    recover_ar = fcoeffs2coeffs(np.append(fcoeffs[:3], [1]))[1:]
+    recover_ma = fcoeffs2coeffs(fcoeffs[3:])
+
+    assert np.allclose(recover_ar, [3, 2.8, 0.8])
+    assert np.allclose(recover_ma, [1])
