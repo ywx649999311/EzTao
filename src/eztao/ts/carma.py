@@ -235,7 +235,6 @@ def neg_param_ll(params, y, gp):
     try:
         gp.set_parameter_vector(params)
         neg_ll = -gp.log_likelihood(y)
-        # break
     except celerite.solver.LinAlgError as c:
         # print(c)
         pass
@@ -615,8 +614,8 @@ def carma_fit(
     elif p == 2 and q == 0:
         bounds = [(-10, 16), (-14, 16), (-13, 15)]
     else:
-        ARbounds = [(-6, 1)] * p
-        MAbounds = [(-6, -1)] * (q + 1)
+        ARbounds = [(-6, 3)] * p
+        MAbounds = [(-6, 1)] * (q + 1)
         bounds = ARbounds + MAbounds
 
     # re-position lc
@@ -628,6 +627,9 @@ def carma_fit(
     kernel = CARMA_term(np.log(ARpars), np.log(MApars))
     gp = GP(kernel, mean=np.median(y))
     gp.compute(t, yerr)
+
+    if p > 2:
+        mode = "coeff"
 
     if mode == "coeff":
         init_func = lambda: carma_log_fcoeff_init(dim)
