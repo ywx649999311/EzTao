@@ -53,7 +53,8 @@ def fcoeffs2coeffs(fcoeffs):
     return poly
 
 
-def _roots2coeff(roots):
+def _roots2coeffs(roots):
+    """Generate factored polynomial given the roots"""
     coeffs = []
     size = len(roots)
     odd = np.bool(size & 0x1)
@@ -274,7 +275,7 @@ class CARMA_term(terms.Term):
         return np.sqrt(np.abs(np.sum(_acf)))
 
     @staticmethod
-    def carma2fcoeff(log_arpars, log_mapars):
+    def carma2fcoeffs(log_arpars, log_mapars):
         """Return the representation of a CARMA model in the polynomical space.
 
         Args:
@@ -288,15 +289,30 @@ class CARMA_term(terms.Term):
         _arroots = _compute_roots(np.append([1 + 0j], _pars[:_p]))
         _maroots = _compute_roots(np.array(_pars[_p:][::-1], dtype=np.complex128))
         ma_mult = _pars[-1:]
-        ar_coeffs = _roots2coeff(_arroots)
+        ar_coeffs = _roots2coeffs(_arroots)
 
         if _q > 0:
-            ma_coeffs = _roots2coeff(_arroots)
+            ma_coeffs = _roots2coeffs(_arroots)
             ma_coeffs.append(ma_mult)
         else:
             ma_coeffs = ma_mult
 
         return np.append(ar_coeffs, ma_coeffs)
+
+    @staticmethod
+    def fcoeffs2carma(log_fcoeffs, p):
+        """Return the representation of a CARMA model in the nominal parameter space.
+
+        Args:
+            log_coeffs (object): The array of poly coefficients in the factored form.
+            p (int): The p order of the CARMA model.
+        """
+
+        fcoeffs = np.exp(log_fcoeffs)
+        ARpars = fcoeffs2coeffs(np.append(fcoeffs[:p], [1]))[1:]
+        MApars = fcoeffs2coeffs(fcoeffs[p:])
+
+        return ARpars, MApars
 
 
 class DHO_term(CARMA_term):

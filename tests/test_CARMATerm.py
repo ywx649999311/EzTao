@@ -80,12 +80,17 @@ def test_coeff_convert():
     assert np.allclose(fcoeffs2coeffs(np.array([1.0, 2])), P.polymul([1, 1], 2))
 
 
-def test_carma2coeff():
+def test_carma_fcoeffs():
     """Test the function converting a CARMA model into the polynomical space."""
     kernel1 = CARMA_term(np.log([3, 2.8, 0.8]), np.log([1]))
-    fcoeffs = kernel1.carma2fcoeff(np.log([3, 2.8, 0.8]), np.log([1]))
+    fcoeffs = kernel1.carma2fcoeffs(np.log([3, 2.8, 0.8]), np.log([1]))
     recover_ar = fcoeffs2coeffs(np.append(fcoeffs[:3], [1]))[1:]
     recover_ma = fcoeffs2coeffs(fcoeffs[3:])
 
+    # test carma2fcoeffs
     assert np.allclose(recover_ar, [3, 2.8, 0.8])
     assert np.allclose(recover_ma, [1])
+
+    # test fcoeffs2carma
+    params = np.append(*kernel1.fcoeffs2carma(np.log(fcoeffs), 3))
+    assert np.allclose(params, np.exp(kernel1.get_parameter_vector()))
