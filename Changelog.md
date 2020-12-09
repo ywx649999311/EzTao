@@ -1,3 +1,11 @@
+## v0.2.2 (2020-12-08)
+---
+- add methods to CARMA_term conversion between CARMA and poly space
+- fixed bugs and add tests for model 2nd order stat funcs
+- close #2, close #10
+
+<br>
+
 ## v0.2.1 (2020-12-05)
 ---
 - A bunch bug fixes in the ts.carma module
