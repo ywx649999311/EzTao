@@ -60,8 +60,8 @@ def plot_drw_ll(
 
     # run in bulk
     gp.compute(t, yerr)
-    vec_neg_ll = np.vectorize(prob_func, excluded=[1, 2, 3], signature="(n)->()")
-    bulk_ll = np.negative(vec_neg_ll(ls_params_combo, y, yerr, gp))
+    vec_neg_ll = np.vectorize(prob_func, excluded=[1, 2], signature="(n)->()")
+    bulk_ll = np.negative(vec_neg_ll(ls_params_combo, y, gp))
     ll_reshape = bulk_ll.reshape((grid_size, grid_size))
 
     # normalize, better contours
@@ -189,7 +189,7 @@ def plot_dho_ll(
     param_grid = np.meshgrid(*grid_ls)  # log scale
 
     # prepare for np.vectorize
-    vec_neg_ll = np.vectorize(prob_func, excluded=[1, 2, 3], signature="(n)->()")
+    vec_neg_ll = np.vectorize(prob_func, excluded=[1, 2], signature="(n)->()")
     param_combos = zip(
         param_grid[0].flatten(),
         param_grid[1].flatten(),
@@ -201,7 +201,7 @@ def plot_dho_ll(
     # run in bulk
     gp.set_parameter_vector(best_log)
     gp.compute(t, yerr)
-    bulk_ll = np.negative(vec_neg_ll(ls_param_combos, y, yerr, gp))
+    bulk_ll = np.negative(vec_neg_ll(ls_param_combos, y, gp))
 
     # back to shape (dim, dim, dim, dim)
     dims = np.empty(num_param, dtype=np.int)

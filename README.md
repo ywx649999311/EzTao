@@ -1,4 +1,5 @@
 ![tests](https://github.com/ywx649999311/EzTao/workflows/tests/badge.svg)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ywx649999311/EzTao/HEAD?filepath=tutorials)
 # EzTao (易道)
 **EzTao** is a toolkit for conducting AGN time-series/variability analysis, mainly utilizing the continuous-time auto-regressive moving average model (CARMA)
 
