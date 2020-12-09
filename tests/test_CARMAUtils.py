@@ -45,8 +45,13 @@ def test_acf():
             np.log10(
                 carma_acf(np.array([1 / tau]), np.array([kernel.get_perturb_amp()]))(t)
             ),
-            atol=1e-5,
+            atol=1e-10,
         )
+    
+    ar = np.array([0.04, 0.0027941])
+    ma = np.array([0.004672, 0.0257])
+    dho_acf = carma_acf(ar, ma)
+    assert not (dho_acf(t) > 0).all()
 
 
 def test_sf():
@@ -59,5 +64,5 @@ def test_sf():
             np.log10(
                 carma_sf(np.array([1 / tau]), np.array([kernel.get_perturb_amp()]))(t)
             ),
-            atol=1e-5,
+            atol=1e-10,
         )

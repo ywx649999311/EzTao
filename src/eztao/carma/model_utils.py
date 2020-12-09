@@ -130,7 +130,7 @@ def carma_acf(arparams, maparams):
         for i, r in enumerate(roots):
             R += autocorr[i] * np.exp(r * lag)
 
-        return np.absolute(R / gpTerm.get_rms_amp() ** 2)
+        return np.real(R / gpTerm.get_rms_amp() ** 2)
 
     return autocorr_func
 
