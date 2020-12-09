@@ -28,7 +28,7 @@ def drw_psd(amp, tau):
         tau (float): DRW decorrelation timescale
 
     Returns:
-        A function that takes in frequencies and returns PSD at the 
+        A function that takes in frequencies and returns PSD at the
             given frequencies.
     """
 
@@ -50,7 +50,7 @@ def carma_psd(arparams, maparams):
         maparams (object): Numpy array containing MA parameters
 
     Returns:
-        A function that takes in frequencies and returns PSD at the 
+        A function that takes in frequencies and returns PSD at the
             given frequencies.
     """
     arparams = np.insert(arparams, 0, 1)
@@ -82,7 +82,7 @@ def gp_psd(carmaTerm):
     Args:
         carmaTerm (object): A celerite CARMA term.
     Returns:
-        A function that takes in frequencies and returns PSD at the 
+        A function that takes in frequencies and returns PSD at the
             given frequencies.
     """
 
@@ -114,15 +114,15 @@ def carma_acf(arparams, maparams):
     """Return a function that computes the model autocorrelation function (ACF).
 
     Args:
-        arparams (list): AR parameters in a list (or array-like)
-        maparams (list): MA parameters in a list (or array-like)
+        arparams (list): AR parameters in a numpy array.
+        maparams (list): MA parameters in a numpy array.
 
     Returns:
         A function that takes in time lags and returns ACF at the given lags.
     """
 
-    autocorr = acf(arparams, maparams)
-    roots = np.roots(np.append([1], arparams))
+    roots = np.roots(np.append([1], arparams)).astype(np.complex128)
+    autocorr = acf(roots, arparams, maparams)
     gpTerm = CARMA_term(np.log(arparams), np.log(maparams))
 
     def autocorr_func(lag):
@@ -130,7 +130,7 @@ def carma_acf(arparams, maparams):
         for i, r in enumerate(roots):
             R += autocorr[i] * np.exp(r * lag)
 
-        return R / gpTerm.get_rms_amp() ** 2
+        return np.absolute(R / gpTerm.get_rms_amp() ** 2)
 
     return autocorr_func
 
@@ -156,8 +156,8 @@ def carma_sf(arparams, maparams):
     """Return a function that computes the CARMA structure function (SF).
 
     Args:
-        arparams (list): AR parameters in a list (or array-like)
-        maparams (list): MA parameters in a list (or array-like)
+        arparams (list): AR parameters in a numpy array.
+        maparams (list): MA parameters in a numpy array.
 
     Returns:
         A function that takes in time lags and returns SF at the given lags.
