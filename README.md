@@ -9,11 +9,11 @@ pip install eztao
 ```
 ### Dependencies
 >```
->python = ^3.7
->celerite >= 0.3.0
->matplotlib ^3.3.0
->scipy > 1.5.0
->numba >= 0.51.0
+>python = "^3.7"
+>celerite = ">= 0.3.0"
+>matplotlib = "^3.3.0"
+>scipy = "> 1.5.0"
+>numba = ">= 0.51.0"
 >```
 
 ### Quick Examples
