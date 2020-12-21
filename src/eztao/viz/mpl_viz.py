@@ -53,7 +53,7 @@ def plot_drw_ll(
     log_amps = np.linspace(np.log(amp_range[0]), np.log(amp_range[1]), grid_size)
 
     param_grid = np.meshgrid(log_amps, log_taus)  # log scale
-    reg_param_grid = np.exp(param_grid)  # normal scale
+    # reg_param_grid = np.exp(param_grid)  # normal scale
 
     # flatten to list
     ls_params_combo = list(zip(param_grid[0].flatten(), param_grid[1].flatten()))
@@ -67,7 +67,7 @@ def plot_drw_ll(
     # normalize, better contours
     max_ll, min_ll = np.max(bulk_ll), np.min(bulk_ll)
     ll_range = max_ll - min_ll
-    divnorm = mpl.colors.DivergingNorm(
+    divnorm = mpl.colors.TwoSlopeNorm(
         vmin=min_ll, vmax=max_ll + 1, vcenter=(5 + max_ll - 0.02 * ll_range)
     )
 
@@ -215,13 +215,13 @@ def plot_dho_ll(
     delta_levels = np.exp(np.linspace(0, np.log(ll_range), 10, endpoint=False))
     levels = max_ll - delta_levels
     levels = levels[::-1]
-    divnorm = mpl.colors.DivergingNorm(
+    divnorm = mpl.colors.TwoSlopeNorm(
         vmin=min_ll, vmax=max_ll + 1, vcenter=(5 + max_ll - 0.1 * ll_range)
     )
 
     # determine the frame containing the best ll
     idx_max = np.unravel_index(
-        np.argmax(np.median(ll_reshape, axis=(0, 1)), axis=None), (outer_dim, outer_dim)
+        np.argmax(np.max(ll_reshape, axis=(0, 1)), axis=None), (outer_dim, outer_dim)
     )
 
     # plot
