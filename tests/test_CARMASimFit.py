@@ -51,8 +51,8 @@ def test_simRand():
     assert t.shape[0] == y.shape[0] == yerr.shape[0] == 150
 
 
-def test_simByT():
-    """Test function gpSimByT."""
+def test_simByTime():
+    """Test function gpSimByTime."""
     t = np.sort(np.random.uniform(0, 3650, 5000))
     kernels = [drw1, dho1, carma30b]
     nLC = 2
@@ -60,14 +60,14 @@ def test_simByT():
 
     for k in kernels:
         amp = k.get_rms_amp()
-        tOut, yOut, yerrOut = gpSimByT(k, SNR, t, nLC=nLC)
+        tOut, yOut, yerrOut = gpSimByTime(k, SNR, t, nLC=nLC)
 
         assert tOut.shape == (nLC, len(t))
         assert np.sum(yOut[0] < 0) > 0
         assert (np.argsort(yOut - yerrOut) == np.argsort(np.abs(yerrOut))).all()
         assert np.allclose(np.median(np.abs(yerrOut)), amp / SNR, rtol=0.2)
 
-    tOut, yOut, yerrOut = gpSimByT(dho2, SNR, t, nLC=1)
+    tOut, yOut, yerrOut = gpSimByTime(dho2, SNR, t, nLC=1)
     assert tOut.shape[0] == yOut.shape[0] == yerrOut.shape[0] == t.shape[0]
 
 
@@ -110,7 +110,8 @@ def test_dhoFit():
     t2, y2, yerr2 = gpSimRand(dho2, 200, 365 * 10.0, 1000, nLC=100, season=False)
     best_fit_dho2 = np.array(
         Parallel(n_jobs=-1)(
-            delayed(dho_fit)(t2[i], y2[i], yerr2[i], de=False) for i in range(len(t2))
+            delayed(dho_fit)(t2[i], y2[i], yerr2[i], diffEv=False)
+            for i in range(len(t2))
         )
     )
 
@@ -145,7 +146,7 @@ def test_carmaFit():
     t2, y2, yerr2 = gpSimRand(carma20b, 100, 365 * 10.0, 500, nLC=100, season=False)
     best_fit_carma2 = np.array(
         Parallel(n_jobs=-1)(
-            delayed(carma_fit)(t2[i], y2[i], yerr2[i], 2, 0, de=False, mode="coeff")
+            delayed(carma_fit)(t2[i], y2[i], yerr2[i], 2, 0, diffEv=False, mode="coeff")
             for i in range(len(t2))
         )
     )
@@ -160,8 +161,8 @@ def test_carmaFit():
     # use min opt, pass if no error thrown
     for i in range(5):
         try:
-            carma_fit(t1[i * 5], y1[i * 5], yerr1[i * 5], 3, 2, de=False)
-            carma_fit(t2[i * 5], y2[i * 5], yerr2[i * 5], 3, 0, de=False)
+            carma_fit(t1[i * 5], y1[i * 5], yerr1[i * 5], 3, 2, diffEv=False)
+            carma_fit(t2[i * 5], y2[i * 5], yerr2[i * 5], 3, 0, diffEv=False)
         except ValueError as ve:
             if "violates bound" in ve.message:
                 print(ve.message)

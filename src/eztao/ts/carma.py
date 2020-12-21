@@ -12,7 +12,7 @@ from eztao.ts.utils import *
 __all__ = [
     "gpSimFull",
     "gpSimRand",
-    "gpSimByT",
+    "gpSimByTime",
     "drw_fit",
     "dho_fit",
     "carma_fit",
@@ -128,7 +128,7 @@ def gpSimRand(carmaTerm, SNR, duration, N, nLC=1, season=True, full_N=10_000):
         return tOut, yOut, yerrOut
 
 
-def gpSimByT(carmaTerm, SNR, t, factor=10, nLC=1):
+def gpSimByTime(carmaTerm, SNR, t, factor=10, nLC=1):
     """Simulate CARMA time series at the provided timestamps.
 
     This function uses a 'factor' parameter to determine the sampling rate
@@ -417,11 +417,7 @@ def _min_opt(
     for i in range(n_iter):
         initial_params = init_func()
         r = minimize(
-            neg_ll,
-            initial_params,
-            method=method,
-            bounds=bounds,
-            args=(y, gp),
+            neg_ll, initial_params, method=method, bounds=bounds, args=(y, gp),
         )
 
         if r.success and (r.fun != -np.inf):
@@ -447,14 +443,14 @@ def _min_opt(
     return best_fit
 
 
-def drw_fit(t, y, yerr, de=True, debug=False, user_bounds=None, n_iter=10):
+def drw_fit(t, y, yerr, diffEv=True, debug=False, user_bounds=None, n_iter=10):
     """Fix time series to a DRW model.
 
     Args:
         t (object): An array of time stamps in days.
         y (object): An array of y values.
         yerr (object): An array of the errors in y values.
-        de (bool, optional): Whether to use differential_evolution as the
+        diffEv (bool, optional): Whether to use differential_evolution as the
             optimizer. Defaults to True.
         debug (bool, optional): Turn on/off debug mode. Defaults to False.
         user_bounds (list, optional): Parameter boundaries for the optimizer.
@@ -488,15 +484,9 @@ def drw_fit(t, y, yerr, de=True, debug=False, user_bounds=None, n_iter=10):
     gp = GP(kernel, mean=np.median(y))
     gp.compute(t, yerr)
 
-    if de:
+    if diffEv:
         best_fit_return = _de_opt(
-            y,
-            best_fit,
-            gp,
-            lambda: drw_log_param_init(std),
-            "param",
-            debug,
-            bounds,
+            y, best_fit, gp, lambda: drw_log_param_init(std), "param", debug, bounds,
         )
     else:
         best_fit_return = _min_opt(
@@ -513,14 +503,14 @@ def drw_fit(t, y, yerr, de=True, debug=False, user_bounds=None, n_iter=10):
     return best_fit_return
 
 
-def dho_fit(t, y, yerr, de=True, debug=False, user_bounds=None, n_iter=10):
+def dho_fit(t, y, yerr, diffEv=True, debug=False, user_bounds=None, n_iter=10):
     """Fix time series to a DHO model.
 
     Args:
         t (object): An array of time stamps in days.
         y (object): An array of y values.
         yerr (object): An array of the errors in y values.
-        de (bool, optional): Whether to use differential_evolution as the
+        diffEv (bool, optional): Whether to use differential_evolution as the
             optimizer. Defaults to True.
         debug (bool, optional): Turn on/off debug mode. Defaults to False.
         user_bounds (list, optional): Parameter boundaries for the optimizer.
@@ -551,15 +541,9 @@ def dho_fit(t, y, yerr, de=True, debug=False, user_bounds=None, n_iter=10):
     gp = GP(kernel, mean=np.mean(y))
     gp.compute(t, yerr)
 
-    if de:
+    if diffEv:
         best_fit_return = _de_opt(
-            y,
-            best_fit,
-            gp,
-            lambda: dho_log_param_init(),
-            "param",
-            debug,
-            bounds,
+            y, best_fit, gp, lambda: dho_log_param_init(), "param", debug, bounds,
         )
     else:
         best_fit_return = _min_opt(
@@ -577,7 +561,16 @@ def dho_fit(t, y, yerr, de=True, debug=False, user_bounds=None, n_iter=10):
 
 
 def carma_fit(
-    t, y, yerr, p, q, de=True, debug=False, mode="coeff", user_bounds=None, n_iter=10
+    t,
+    y,
+    yerr,
+    p,
+    q,
+    diffEv=True,
+    debug=False,
+    mode="coeff",
+    user_bounds=None,
+    n_iter=10,
 ):
     """Fit time series to any CARMA model.
 
@@ -587,7 +580,7 @@ def carma_fit(
         yerr (object): An array of the errors in y values.
         p (int): P order of a CARMA(p, q) model.
         q (int): Q order of a CARMA(p, q) model.
-        de (bool, optional): Whether to use differential_evolution as the
+        diffEv (bool, optional): Whether to use differential_evolution as the
             optimizer. Defaults to True.
         debug (bool, optional): Turn on/off debug mode. Defaults to False.
         mode (str, optional): Specify which space to sample, 'param' or 'coeff'.
@@ -636,26 +629,11 @@ def carma_fit(
     else:
         init_func = lambda: carma_log_param_init(dim)
 
-    if de:
-        best_fit_return = _de_opt(
-            y,
-            best_fit,
-            gp,
-            init_func,
-            mode,
-            debug,
-            bounds,
-        )
+    if diffEv:
+        best_fit_return = _de_opt(y, best_fit, gp, init_func, mode, debug, bounds,)
     else:
         best_fit_return = _min_opt(
-            y,
-            best_fit,
-            gp,
-            init_func,
-            mode,
-            debug,
-            bounds,
-            n_iter,
+            y, best_fit, gp, init_func, mode, debug, bounds, n_iter,
         )
 
     return best_fit_return
