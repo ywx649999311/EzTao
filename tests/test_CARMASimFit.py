@@ -73,7 +73,7 @@ def test_simByTime():
 
 def test_drwFit():
 
-    for kernel in [drw1, drw2]:
+    for kernel in [drw1, drw2, drw3]:
         t, y, yerr = gpSimRand(kernel, 50, 365 * 10.0, 500, nLC=100, season=False)
         best_fit_drw = np.array(
             Parallel(n_jobs=-1)(
@@ -91,36 +91,20 @@ def test_drwFit():
 
 def test_dhoFit():
 
-    # use de
-    t1, y1, yerr1 = gpSimRand(dho1, 200, 365 * 10.0, 1000, nLC=100, season=False)
-    best_fit_dho1 = np.array(
-        Parallel(n_jobs=-1)(
-            delayed(dho_fit)(t1[i], y1[i], yerr1[i]) for i in range(len(t1))
+    for kernel in [dho1, dho2]:
+        t1, y1, yerr1 = gpSimRand(dho1, 200, 365 * 10.0, 1000, nLC=100, season=False)
+        best_fit_dho1 = np.array(
+            Parallel(n_jobs=-1)(
+                delayed(dho_fit)(t1[i], y1[i], yerr1[i]) for i in range(len(t1))
+            )
         )
-    )
 
-    diff1 = np.log(best_fit_dho1[:, -1]) - dho1.parameter_vector[-1]
+        diff1 = np.log(best_fit_dho1[:, -1]) - dho1.parameter_vector[-1]
 
-    # make sure half of the best-fits is reasonal based-on
-    # previous simulations. (see LC_fit_fuctions.ipynb)
-    assert np.percentile(diff1, 25) > -0.35
-    assert np.percentile(diff1, 75) < 0.1
-
-    # use min
-    t2, y2, yerr2 = gpSimRand(dho2, 200, 365 * 10.0, 1000, nLC=100, season=False)
-    best_fit_dho2 = np.array(
-        Parallel(n_jobs=-1)(
-            delayed(dho_fit)(t2[i], y2[i], yerr2[i], diffEv=False)
-            for i in range(len(t2))
-        )
-    )
-
-    diff2 = np.log(best_fit_dho2[:, -1]) - dho2.parameter_vector[-1]
-
-    # make sure half of the best-fits is reasonal based-on
-    # previous simulations. (see LC_fit_fuctions.ipynb)
-    assert np.percentile(diff2, 25) > -0.35
-    assert np.percentile(diff2, 75) < 0.1
+        # make sure half of the best-fits is reasonal based-on
+        # previous simulations. (see LC_fit_fuctions.ipynb)
+        assert np.percentile(diff1, 25) > -0.35
+        assert np.percentile(diff1, 75) < 0.1
 
 
 def test_carmaFit():
