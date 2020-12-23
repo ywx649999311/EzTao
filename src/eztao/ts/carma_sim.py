@@ -6,9 +6,9 @@ from math import ceil
 import celerite
 from celerite import GP
 from eztao.ts.utils import add_season, downsample_byN, downsample_byTime
-from eztao.carma.CARMATerm import DRW_term
+from eztao.carma.CARMATerm import DRW_term, CARMA_term
 
-__all__ = ["gpSimFull", "gpSimRand", "gpSimByTime"]
+__all__ = ["gpSimFull", "gpSimRand", "gpSimByTime", "pred_lc"]
 
 
 def gpSimFull(carmaTerm, SNR, duration, N, nLC=1, log_flux=True):
@@ -178,3 +178,48 @@ def gpSimByTime(carmaTerm, SNR, t, factor=10, nLC=1, log_flux=True):
         return tOut[0], yOut[0], yerrOut[0]
     else:
         return tOut, yOut, yerrOut
+
+
+def pred_lc(t, y, yerr, params, p, t_pred, return_var=True):
+    """Generate model predicted values at arbitrary time stamps given the initial
+    time series and a best-fit model.
+
+    Args:
+        t (object): A 1d array of time stamps from the initial time series.
+        y (object): A 1d array of y values (i.e., flux) from the initial time series.
+        yerr (object): A 1d array of measurement errors from the initial time series.
+        params (object): Array-like, best-fit CARMA parameters
+        p (int): The AR order (p) of the best-fit model.
+        t_pred (object): A 1d array of time stamps to generate predicted time series.
+        return_var (bool, optional): Whether to return uncertainties in the mean
+            prediction. Defaults to True.
+
+    Returns:
+        object: Same as the input t_pred.
+        object: A 1d array of mean prediction at t_pred.
+        object: A 1d array of uncertainties (variance) in the mean prediction at t_pred.
+    """
+
+    assert p >= len(params) - p, "The dimension of AR must be greater than that of MA"
+
+    # get ar, ma
+    ar = params[:p]
+    ma = params[p:]
+
+    # reposition lc
+    y_aln = y - np.median(y)
+
+    # init kernel, gp and compute matrix
+    kernel = CARMA_term(np.log(ar), np.log(ma))
+    gp = celerite.GP(kernel, mean=0)
+    gp.compute(t, yerr)
+
+    try:
+        mu, var = gp.predict(y_aln, t_pred, return_var=return_var)
+    except FloatingPointError as e:
+        print(e)
+        print("No (super small) variance will be returned")
+        return_var = False
+        mu, var = gp.predict(y_aln, t_pred, return_var=return_var)
+
+    return t_pred, mu + np.median(y), var

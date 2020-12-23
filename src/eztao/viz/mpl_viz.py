@@ -2,7 +2,8 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import numpy as np
 import celerite
-from ..carma.CARMATerm import *
+from eztao.carma.CARMATerm import *
+from eztao.ts.carma_sim import pred_lc
 
 
 def plot_drw_ll(
@@ -282,63 +283,42 @@ def plot_dho_ll(
     fig.suptitle("DHO Loglikelihood Surface", x=0.5, y=0.92)
 
 
-def plot_pred_lc(t, y, yerr, best_ar, best_ma, t_pred):
+def plot_pred_lc(t, y, yerr, params, p, t_pred, plot_input=True):
     """
     Plot GP predicted light curve given best-fit parameters.
 
     Args:
-        t (object): An array of time points
-        y (object): An array of fluxes at the abvoe time points
-        yerr (object): An array of photometric errors
-        best_ar (object): Best-fit CARMA AR parameters in an array.
-        best_ma (object): Best-fit CARMA MA parameters in an array.
-        t_pred (object): Time points at which to generate predictions.
+        t (object): A 1d array of time stamps from the initial time series.
+        y (object): A 1d array of y values (i.e., flux) from the initial time series.
+        yerr (object): A 1d array of measurement errors from the initial time series.
+        params (object): Array-like, best-fit CARMA parameters
+        p (int): The AR order (p) of the best-fit model.
+        t_pred (object): Time stamps at which to generate predictions.
+        plot_input (bool): Whether to plot the input time series.
     """
 
-    assert len(best_ar) >= len(
-        best_ma
-    ), "The dimension of AR must be greater than that of MA"
-
-    # create GP model using params
-    kernel = CARMA_term(np.log(best_ar), np.log(best_ma))
-    gp = celerite.GP(kernel, mean=np.mean(y))
-    compute_ct = 0
-
-    # if compute can't factorize, try 4 more times
-    while compute_ct < 5:
-        try:
-            gp.compute(t, yerr)
-            compute_ct += 5
-        except celerite.solver.LinAlgError:
-            compute_ct += 1
-            new_params = np.log(
-                np.concatenate([best_ar, best_ma])
-            ) + 1e-6 * np.random.randn(len(best_ar) + len(best_ma))
-            gp.set_parameter_vector(new_params)
-
-    # generate pred LC
-    return_var = True
-    try:
-        mu, var = gp.predict(y, t_pred, return_var=return_var)
-        std = np.sqrt(var)
-    except FloatingPointError as e:
-        print(e)
-        print("No variance will be returned")
-        return_var = False
-        mu, var = gp.predict(y, t_pred, return_var=return_var)
+    # get pred lc
+    t_pred, mu, var = pred_lc(t, y, yerr, params, int(p), t_pred)
 
     # Plot the data
     t_range = t_pred[-1] - t_pred[0]
     fig, ax = plt.subplots(1, 1, dpi=150, figsize=(8, 4))
     color = "#ff7f0e"
-    ax.errorbar(
-        t, y, yerr=yerr, fmt=".k", capsize=2, label="Original Data", markersize=3
-    )
     ax.plot(t_pred, mu, color=color, label="Mean Prediction", alpha=0.8)
-    if return_var:
+
+    # if valid variance returned
+    if np.median(var) > np.median(np.abs(yerr)) / 1e10:
+        std = np.std(var)
         ax.fill_between(
             t_pred, mu + std, mu - std, color=color, alpha=0.3, edgecolor="none"
         )
+
+    if plot_input:
+        ax.errorbar(
+            t, y, yerr=yerr, fmt=".k", capsize=2, label="Input Data", markersize=3
+        )
+
+    # other plot setting
     ax.set_xlim(t_pred[0] - t_range / 50, t_pred[-1] + t_range / 50)
     ax.set_ylabel(r"Flux (arb. unit)")
     ax.set_xlabel(r"Time (day)")

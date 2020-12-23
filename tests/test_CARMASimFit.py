@@ -76,6 +76,28 @@ def test_simByTime():
     assert tOut.shape[0] == yOut.shape[0] == yerrOut.shape[0] == t.shape[0]
 
 
+def test_pred_lc():
+    """Test the carma_sim.pred_lc function."""
+    nLC = 5
+
+    for kernel in [drw2, dho1]:
+        t0, y0, yerr0 = gpSimRand(kernel, 10, 365 * 10.0, 100, nLC=nLC)
+
+        for i in range(nLC):
+            best = carma_fit(t0[i], y0[i], yerr0[i], kernel.p, kernel.q)
+
+            # check if residual < error
+            t1, mu1, var1 = pred_lc(t0[i], y0[i], yerr0[i], best, kernel.p, t0[i])
+            assert mu1.shape == t1.shape
+            assert np.std(mu1 - y0[i]) < np.median(np.abs(yerr0[i]))
+
+            # check if any NaN in pred lc
+            t_pred = np.linspace(t1[0], t1[-1], 1000)
+            t2, mu2, var2 = pred_lc(t0[i], y0[i], yerr0[i], best, kernel.p, t_pred)
+            assert mu2.shape == t2.shape
+            assert not np.isnan(mu2).any()
+
+
 def test_drwFit():
 
     for kernel in [drw1, drw2, drw3]:
