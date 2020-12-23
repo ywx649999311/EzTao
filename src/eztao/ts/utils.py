@@ -3,7 +3,7 @@ from numba import njit, float64, int32, boolean, vectorize, guvectorize
 from scipy.spatial import KDTree
 from functools import partial
 
-__all__ = ["downsample_byN", "add_season", "downsample_byT"]
+__all__ = ["downsample_byN", "add_season", "downsample_byTime"]
 
 
 def downsample_byN(t, nObs):
@@ -32,7 +32,7 @@ def _get_nearest_idx(tIn, x):
     return (np.abs(tIn - x)).argmin()
 
 
-def downsample_byT(tIn, tOut):
+def downsample_byTime(tIn, tOut):
     """Find the indices of a downsampled light curve given output timestamps.
 
     Args:
