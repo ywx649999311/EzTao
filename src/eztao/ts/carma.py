@@ -23,7 +23,7 @@ __all__ = [
 ]
 
 
-def gpSimFull(carmaTerm, SNR, duration, N, nLC=1):
+def gpSimFull(carmaTerm, SNR, duration, N, nLC=1, log_flux=True):
     """Simulate full CARMA time series.
 
     Args:
@@ -34,6 +34,8 @@ def gpSimFull(carmaTerm, SNR, duration, N, nLC=1):
         duration (float): The duration of the simulated time series in days.
         N (int): The number of data points.
         nLC (int, optional): Number of light curves to simulate. Defaults to 1.
+        log_flux (bool): Whether the flux/y values should be in log scale, i.e.,
+            magnitude. This argument affects how errors are assigned. Defaluts to True.
 
     Raises:
         RuntimeError: If the input CARMA term/model is not stable, thus cannot be
@@ -56,7 +58,7 @@ def gpSimFull(carmaTerm, SNR, duration, N, nLC=1):
     t = np.linspace(0, duration, N)
     noise = carmaTerm.get_rms_amp() / SNR
     yerr = np.random.lognormal(0, 0.25, N) * noise
-    yerr = yerr[np.argsort(np.abs(yerr))]
+    yerr = yerr[np.argsort(np.abs(yerr))]  # small->large
 
     # init GP and solve matrix
     gp_sim = GP(carmaTerm)
@@ -67,9 +69,18 @@ def gpSimFull(carmaTerm, SNR, duration, N, nLC=1):
     y = gp_sim.sample(size=nLC)
 
     # format yerr making it heteroscedastic
-    y_rank = y.argsort(axis=1).argsort(axis=1)
     yerr = np.repeat(yerr[None, :], nLC, axis=0)
-    yerr = np.array(list(map(lambda x, y: x[y], yerr, y_rank)))
+
+    # if in mag, large value with large error; in flux, the opposite
+    if log_flux:
+        # ascending sort
+        y_rank = y.argsort(axis=1).argsort(axis=1)
+        yerr = np.array(list(map(lambda x, y: x[y], yerr, y_rank)))
+    else:
+        # descending sort
+        y_rank = (-y).argsort(axis=1).argsort(axis=1)
+        yerr = np.array(list(map(lambda x, y: x[y], yerr, y_rank)))
+
     yerr_sign = np.random.binomial(1, 0.5, yerr.shape)
     yerr_sign[yerr_sign < 1] = -1
     yerr = yerr * yerr_sign
@@ -80,7 +91,9 @@ def gpSimFull(carmaTerm, SNR, duration, N, nLC=1):
         return t, y + yerr, yerr
 
 
-def gpSimRand(carmaTerm, SNR, duration, N, nLC=1, season=True, full_N=10_000):
+def gpSimRand(
+    carmaTerm, SNR, duration, N, nLC=1, log_flux=True, season=True, full_N=10_000
+):
     """Simulate randomly downsampled CARMA time series.
 
     Args:
@@ -91,6 +104,8 @@ def gpSimRand(carmaTerm, SNR, duration, N, nLC=1, season=True, full_N=10_000):
         duration (float): The duration of the simulated time series in days.
         N (int): The number of data points in the returned light curves.
         nLC (int, optional): Number of light curves to simulate. Defaults to 1.
+        log_flux (bool): Whether the flux/y values should be in log scale, i.e.,
+            magnitude. This argument affects how errors are assigned. Defaluts to True.
         season (bool, optional): Whether to simulate seasonal gaps.
             Defaults to True.
         full_N (int, optional): The number of data points the full light curves.
@@ -100,7 +115,7 @@ def gpSimRand(carmaTerm, SNR, duration, N, nLC=1, season=True, full_N=10_000):
         Arrays: t, y and yerr of the simulated light curves in numpy arrays.
             Note that errors have been added to y.
     """
-    t, y, yerr = gpSimFull(carmaTerm, SNR, duration, full_N, nLC=nLC)
+    t, y, yerr = gpSimFull(carmaTerm, SNR, duration, full_N, nLC=nLC, log_flux=log_flux)
     t = np.atleast_2d(t)
     y = np.atleast_2d(y)
     yerr = np.atleast_2d(yerr)
@@ -127,7 +142,7 @@ def gpSimRand(carmaTerm, SNR, duration, N, nLC=1, season=True, full_N=10_000):
         return tOut, yOut, yerrOut
 
 
-def gpSimByTime(carmaTerm, SNR, t, factor=10, nLC=1):
+def gpSimByTime(carmaTerm, SNR, t, factor=10, nLC=1, log_flux=True):
     """Simulate CARMA time series at the provided timestamps.
 
     This function uses a 'factor' parameter to determine the sampling rate
@@ -145,6 +160,8 @@ def gpSimByTime(carmaTerm, SNR, t, factor=10, nLC=1):
             ratebetween the simulated full time series and the desired output.
             Defaults to 10.
         nLC (int, optional): Number of light curves to simulate. Defaults to 1.
+        log_flux (bool): Whether the flux/y values should be in log scale, i.e.,
+            magnitude. This argument affects how errors are assigned. Defaluts to True.
 
     Returns:
         Arrays: t, y and yerr of the simulated light curves in numpy arrays.
@@ -155,7 +172,9 @@ def gpSimByTime(carmaTerm, SNR, t, factor=10, nLC=1):
     N = factor * ceil(duration / np.median(t[1:] - t[:-1]))
 
     # simulate full LC
-    tFull, yFull, yerrFull = gpSimFull(carmaTerm, SNR, duration, N=N, nLC=nLC)
+    tFull, yFull, yerrFull = gpSimFull(
+        carmaTerm, SNR, duration, N=N, nLC=nLC, log_flux=log_flux
+    )
     tFull = np.atleast_2d(tFull)
     yFull = np.atleast_2d(yFull)
     yerrFull = np.atleast_2d(yerrFull)

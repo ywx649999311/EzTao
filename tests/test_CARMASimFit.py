@@ -50,11 +50,15 @@ def test_simRand():
     t, y, yerr = gpSimRand(dho2, 20, 365 * 10.0, 150, nLC=1, season=False)
     assert t.shape[0] == y.shape[0] == yerr.shape[0] == 150
 
+    # test regular flux (not in mag)
+    tF, yF, yerrF = gpSimRand(carma31, 20, 365 * 10.0, 150, nLC=1, log_flux=False)
+    assert (np.argsort(yF - yerrF) == np.argsort(-np.abs(yerrF))).all()
+
 
 def test_simByTime():
     """Test function gpSimByTime."""
     t = np.sort(np.random.uniform(0, 3650, 5000))
-    kernels = [drw1, dho1, carma30b]
+    kernels = [drw1, dho1, carma30]
     nLC = 2
     SNR = 20
 
@@ -67,6 +71,7 @@ def test_simByTime():
         assert (np.argsort(yOut - yerrOut) == np.argsort(np.abs(yerrOut))).all()
         assert np.allclose(np.median(np.abs(yerrOut)), amp / SNR, rtol=0.2)
 
+    # test single LC simulation
     tOut, yOut, yerrOut = gpSimByTime(dho2, SNR, t, nLC=1)
     assert tOut.shape[0] == yOut.shape[0] == yerrOut.shape[0] == t.shape[0]
 
