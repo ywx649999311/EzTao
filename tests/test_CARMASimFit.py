@@ -14,12 +14,12 @@ drw2 = DRW_term(np.log(0.15), np.log(300))
 drw3 = DRW_term(np.log(0.25), np.log(800))
 dho1 = DHO_term(np.log(0.04), np.log(0.0027941), np.log(0.004672), np.log(0.0257))
 dho2 = DHO_term(np.log(0.06), np.log(0.0001), np.log(0.0047), np.log(0.0157))
-carma30a = CARMA_term(np.log([3, 2.8, 0.8]), np.log([1]))
-carma30b = CARMA_term(np.log([3, 3.189, 1.2]), np.log([1]))
+carma31 = CARMA_term(np.log([3, 2.8, 0.8]), np.log([1, 5]))
+carma30 = CARMA_term(np.log([3, 3.189, 1.2]), np.log([1]))
 carma_invalid = CARMA_term(
     [1.95797093, -3.84868981, 0.71100209], [0.36438868, -2.96417798, 0.77545961]
 )
-test_kernels = [drw1, drw2, drw3, dho1, dho2, carma30a, carma30b]
+test_kernels = [drw1, drw2, drw3, dho1, dho2, carma30, carma31]
 
 
 def test_invalidSim():
@@ -91,35 +91,64 @@ def test_drwFit():
 
 def test_dhoFit():
 
-    for kernel in [dho1, dho2]:
-        t1, y1, yerr1 = gpSimRand(kernel, 200, 365 * 10.0, 1000, nLC=100, season=False)
-        best_fit_dho1 = np.array(
-            Parallel(n_jobs=-1)(
-                delayed(dho_fit)(t1[i], y1[i], yerr1[i]) for i in range(len(t1))
-            )
+    t1, y1, yerr1 = gpSimRand(dho1, 100, 365 * 10.0, 500, nLC=100, season=False)
+    best_fit_dho1 = np.array(
+        Parallel(n_jobs=-1)(
+            delayed(dho_fit)(t1[i], y1[i], yerr1[i]) for i in range(len(t1))
         )
+    )
 
-        diff1 = np.log(best_fit_dho1[:, -1]) - kernel.parameter_vector[-1]
+    diff1 = np.log(best_fit_dho1[:, -1]) - dho1.parameter_vector[-1]
 
-        # make sure half of the best-fits is reasonal based-on
-        # previous simulations. (see LC_fit_fuctions.ipynb)
-        assert np.percentile(diff1, 25) > -0.35
-        assert np.percentile(diff1, 75) < 0.1
+    # make sure half of the best-fits is reasonal based-on
+    # previous simulations. (see LC_fit_fuctions.ipynb)
+    assert np.percentile(diff1, 25) > -0.3
+    assert np.percentile(diff1, 75) < 0.2
+
+    # the second test will down scale lc by 1e6
+    t2, y2, yerr2 = gpSimRand(dho2, 100, 365 * 10.0, 500, nLC=100, season=False)
+    best_fit_dho2 = np.array(
+        Parallel(n_jobs=-1)(
+            delayed(dho_fit)(t2[i], y2[i] / 1e6, yerr2[i] / 1e6) for i in range(len(t2))
+        )
+    )
+
+    diff2 = np.log(best_fit_dho2[:, -2]) - (dho2.parameter_vector[-2] - np.log(1e6))
+
+    # make sure half of the best-fits is reasonal based-on
+    # previous simulations. (see LC_fit_fuctions.ipynb)
+    assert np.percentile(diff2, 25) > -0.3
+    assert np.percentile(diff2, 75) < 0.2
 
 
 def test_carmaFit():
 
-    for kernel in [carma30a, carma30b]:
-        t1, y1, yerr1 = gpSimRand(kernel, 200, 365 * 5.0, 3000, nLC=100, season=False)
-        best_fit_carma1 = np.array(
-            Parallel(n_jobs=-1)(
-                delayed(carma_fit)(t1[i], y1[i], yerr1[i], 3, 0) for i in range(len(t1))
-            )
+    t1, y1, yerr1 = gpSimRand(carma30, 300, 365 * 5.0, 3000, nLC=100, season=False)
+    best_fit_carma1 = np.array(
+        Parallel(n_jobs=-1)(
+            delayed(carma_fit)(t1[i], y1[i], yerr1[i], 3, 0) for i in range(len(t1))
         )
+    )
 
-        diff1 = np.log(best_fit_carma1[:, -1]) - kernel.parameter_vector[-1]
+    diff1 = np.log(best_fit_carma1[:, -1]) - carma30.parameter_vector[-1]
 
-        # make sure half of the best-fits is reasonal based-on
-        # previous simulations. (see LC_fit_fuctions.ipynb)
-        assert np.percentile(diff1, 25) > -0.35
-        assert np.percentile(diff1, 75) < 0.35
+    # make sure half of the best-fits is within +/- 50% of the true
+    assert np.percentile(diff1, 25) > -0.4
+    assert np.percentile(diff1, 75) < 0.4
+
+    # the second test will down scale lc by 1e6
+    t2, y2, yerr2 = gpSimRand(carma31, 300, 365 * 5.0, 3000, nLC=100, season=False)
+    best_fit_carma1 = np.array(
+        Parallel(n_jobs=-1)(
+            delayed(carma_fit)(t2[i], y2[i] / 1e6, yerr2[i] / 1e6, 3, 1)
+            for i in range(len(t2))
+        )
+    )
+
+    diff2 = np.log(best_fit_carma1[:, -2]) - (
+        carma31.parameter_vector[-2] - np.log(1e6)
+    )
+
+    # make sure half of the best-fits is within +/- 50% of the true
+    assert np.percentile(diff2, 25) > -0.4
+    assert np.percentile(diff2, 75) < 0.4

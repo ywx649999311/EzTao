@@ -267,7 +267,7 @@ def drw_log_param_init(std, size=1, max_tau=6.0):
         return drw_param
 
 
-def carma_log_param_init(dim, ranges=None, size=1, a=-8.0, b=8.0):
+def carma_log_param_init(p, q, ranges=None, size=1, a=-8.0, b=8.0, shift=0):
     """Randomly generate CARMA parameters from [a, b) in log.
 
     Args:
@@ -284,6 +284,7 @@ def carma_log_param_init(dim, ranges=None, size=1, a=-8.0, b=8.0):
     Returns:
         Array: The generated CAMRA parameters in the natural log.
     """
+    dim = int(p + q + 1)
     log_param = np.random.rand(size, int(dim))
 
     if (ranges is not None) and (len(ranges) == int(dim)):
@@ -296,13 +297,16 @@ def carma_log_param_init(dim, ranges=None, size=1, a=-8.0, b=8.0):
     else:
         log_param = log_param * (b - a) + a
 
+    # add shift if amp too large/small
+    log_param[:, p:] = log_param[:, p:] + shift
+
     if size == 1:
         return log_param[0]
     else:
         return log_param
 
 
-def carma_log_fcoeff_init(p, q, ranges=None, size=1, a=-8.0, b=8.0):
+def carma_log_fcoeff_init(p, q, ranges=None, size=1, a=-8.0, b=8.0, shift=0):
     """Randomly generate CARMA poly coefficients from [a, b) in log.
 
     Args:
@@ -321,6 +325,7 @@ def carma_log_fcoeff_init(p, q, ranges=None, size=1, a=-8.0, b=8.0):
     """
     dim = int(p + q + 1)
     log_coeff = np.random.rand(size, int(dim))
+
     if (ranges is not None) and (len(ranges) == int(dim)):
         for d in range(dim):
             if all(ranges[d]):
@@ -345,6 +350,7 @@ def carma_log_fcoeff_init(p, q, ranges=None, size=1, a=-8.0, b=8.0):
 
         # update higher order MA
         log_coeff[:, -1] = -low_term[:, 0] + perturb[:, 0]
+        log_coeff[:, -1] += shift
 
     if size == 1:
         return log_coeff[0]
@@ -352,7 +358,7 @@ def carma_log_fcoeff_init(p, q, ranges=None, size=1, a=-8.0, b=8.0):
         return log_coeff
 
 
-def sample_carma(p, q, ranges=None, a=-6, b=6):
+def sample_carma(p, q, ranges=None, a=-6, b=6, shift=0):
     """Randomly generate a stationary CARMA model given the orders.
 
     Args:
@@ -364,7 +370,9 @@ def sample_carma(p, q, ranges=None, a=-6, b=6):
     Returns:
         AR parameters and MA paramters in two seperate arrays.
     """
-    init_fcoeffs = np.exp(carma_log_fcoeff_init(p, q, ranges=ranges, a=a, b=b))
+    init_fcoeffs = np.exp(
+        carma_log_fcoeff_init(p, q, ranges=ranges, a=a, b=b, shift=shift)
+    )
     ARpars = fcoeffs2coeffs(np.append(init_fcoeffs[:p], [1]))[1:]
     MApars = fcoeffs2coeffs(init_fcoeffs[p:])
 
@@ -515,8 +523,14 @@ def dho_fit(t, y, yerr, debug=False, user_bounds=None, init_ranges=None, n_iter=
     t = t - t[0]
     y = y - np.median(y)
 
+    # determine shift due amp too large/small
+    shift = 0
+    if np.std(y) < 1e-4 or np.std(y) > 1e-4:
+        shift = np.log(np.std(y))
+        bounds[2:] += shift
+
     # initialize parameter, kernel and GP
-    kernel = DHO_term(*carma_log_param_init(4))
+    kernel = DHO_term(*carma_log_param_init(2, 1, shift=shift))
     gp = GP(kernel, mean=0)
     gp.compute(t, yerr)
 
@@ -524,7 +538,9 @@ def dho_fit(t, y, yerr, debug=False, user_bounds=None, init_ranges=None, n_iter=
         y,
         best_fit,
         gp,
-        lambda: carma_log_param_init(4, ranges=init_ranges, size=n_iter),
+        lambda: carma_log_param_init(
+            2, 1, ranges=init_ranges, size=n_iter, shift=shift
+        ),
         "param",
         debug,
         bounds,
@@ -582,18 +598,29 @@ def carma_fit(
     t = t - t[0]
     y = y - np.median(y)
 
+    # determine shift due amp too large/small
+    shift = 0
+    if np.std(y) < 1e-4 or np.std(y) > 1e-4:
+        shift = np.log(np.std(y))
+
     # initialize parameter and kernel
-    ARpars, MApars = sample_carma(p, q)
+    ARpars, MApars = sample_carma(p, q, shift=shift)
     kernel = CARMA_term(np.log(ARpars), np.log(MApars))
     gp = GP(kernel, mean=0)
     gp.compute(t, yerr)
 
     if p > 2:
         mode = "coeff"
-        init_func = lambda: carma_log_fcoeff_init(p, q, ranges=init_ranges, size=n_iter)
+        init_func = lambda: carma_log_fcoeff_init(
+            p, q, ranges=init_ranges, size=n_iter, shift=shift
+        )
+        bounds[-1] += shift
     else:
         mode = "param"
-        init_func = lambda: carma_log_param_init(dim, ranges=init_ranges, size=n_iter)
+        init_func = lambda: carma_log_param_init(
+            p, q, ranges=init_ranges, size=n_iter, shift=shift
+        )
+        bounds[p:] += shift
 
     best_fit_return = _min_opt(
         y,
