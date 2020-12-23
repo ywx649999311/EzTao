@@ -92,14 +92,14 @@ def test_drwFit():
 def test_dhoFit():
 
     for kernel in [dho1, dho2]:
-        t1, y1, yerr1 = gpSimRand(dho1, 200, 365 * 10.0, 1000, nLC=100, season=False)
+        t1, y1, yerr1 = gpSimRand(kernel, 200, 365 * 10.0, 1000, nLC=100, season=False)
         best_fit_dho1 = np.array(
             Parallel(n_jobs=-1)(
                 delayed(dho_fit)(t1[i], y1[i], yerr1[i]) for i in range(len(t1))
             )
         )
 
-        diff1 = np.log(best_fit_dho1[:, -1]) - dho1.parameter_vector[-1]
+        diff1 = np.log(best_fit_dho1[:, -1]) - kernel.parameter_vector[-1]
 
         # make sure half of the best-fits is reasonal based-on
         # previous simulations. (see LC_fit_fuctions.ipynb)
@@ -109,46 +109,17 @@ def test_dhoFit():
 
 def test_carmaFit():
 
-    carma20a = CARMA_term(np.log([0.03939692, 0.00027941]), np.log([0.0046724]))
-    carma20b = CARMA_term(np.log([0.08, 0.00027941]), np.log([0.046724]))
-
-    t1, y1, yerr1 = gpSimRand(carma20a, 100, 365 * 10.0, 500, nLC=100, season=False)
-    best_fit_carma1 = np.array(
-        Parallel(n_jobs=-1)(
-            delayed(carma_fit)(t1[i], y1[i], yerr1[i], 2, 0, mode="coeff")
-            for i in range(len(t1))
+    for kernel in [carma30a, carma30b]:
+        t1, y1, yerr1 = gpSimRand(kernel, 200, 365 * 5.0, 3000, nLC=100, season=False)
+        best_fit_carma1 = np.array(
+            Parallel(n_jobs=-1)(
+                delayed(carma_fit)(t1[i], y1[i], yerr1[i], 3, 0) for i in range(len(t1))
+            )
         )
-    )
 
-    diff1 = np.log(best_fit_carma1[:, -1]) - carma20a.parameter_vector[-1]
+        diff1 = np.log(best_fit_carma1[:, -1]) - kernel.parameter_vector[-1]
 
-    # make sure half of the best-fits is reasonal based-on
-    # previous simulations. (see LC_fit_fuctions.ipynb)
-    assert np.percentile(diff1, 25) > -0.35
-    assert np.percentile(diff1, 75) < 0.1
-
-    t2, y2, yerr2 = gpSimRand(carma20b, 100, 365 * 10.0, 500, nLC=100, season=False)
-    best_fit_carma2 = np.array(
-        Parallel(n_jobs=-1)(
-            delayed(carma_fit)(t2[i], y2[i], yerr2[i], 2, 0, diffEv=False, mode="coeff")
-            for i in range(len(t2))
-        )
-    )
-
-    diff2 = np.log(best_fit_carma2[:, -1]) - carma20b.parameter_vector[-1]
-
-    # make sure half of the best-fits is reasonal based-on
-    # previous simulations. (see LC_fit_fuctions.ipynb)
-    assert np.percentile(diff2, 25) > -0.35
-    assert np.percentile(diff2, 75) < 0.1
-
-    # use min opt, pass if no error thrown
-    for i in range(5):
-        try:
-            carma_fit(t1[i * 5], y1[i * 5], yerr1[i * 5], 3, 2, diffEv=False)
-            carma_fit(t2[i * 5], y2[i * 5], yerr2[i * 5], 3, 0, diffEv=False)
-        except ValueError as ve:
-            if "violates bound" in ve.message:
-                print(ve.message)
-            else:
-                raise ValueError("Unrecognized ValueEroor!")
+        # make sure half of the best-fits is reasonal based-on
+        # previous simulations. (see LC_fit_fuctions.ipynb)
+        assert np.percentile(diff1, 25) > -0.35
+        assert np.percentile(diff1, 75) < 0.35

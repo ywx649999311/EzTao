@@ -24,6 +24,8 @@ def _compute_exp(params):
 
 @njit(float64[:](float64[:], float64[:]))
 def polymul(poly1, poly2):
+    """Operate in the lowest to highest order internally."""
+    ## convert from high->low to low->high
     poly1 = poly1[::-1]
     poly2 = poly2[::-1]
     poly1_len = poly1.shape[0]
@@ -33,6 +35,8 @@ def polymul(poly1, poly2):
     for i in np.arange(poly1_len):
         for j in np.arange(poly2_len):
             c[i + j] += poly1[i] * poly2[j]
+
+    ## convert back to high->low
     return c[::-1]
 
 
@@ -50,6 +54,7 @@ def fcoeffs2coeffs(fcoeffs):
     for p in np.arange(nPair):
         poly = polymul(poly, np.array([1.0, fcoeffs[p * 2], fcoeffs[p * 2 + 1]]))
 
+    # the returned is high->low
     return poly
 
 
@@ -276,7 +281,7 @@ class CARMA_term(terms.Term):
 
     @staticmethod
     def carma2fcoeffs(log_arpars, log_mapars):
-        """Return the representation of a CARMA model in the polynomical space.
+        """Return the representation of a CARMA model in the factored polynomical space.
 
         Args:
             log_arpars (list): The logarithm of AR coefficients.
@@ -309,8 +314,8 @@ class CARMA_term(terms.Term):
         """
 
         fcoeffs = np.exp(log_fcoeffs)
-        ARpars = fcoeffs2coeffs(np.append(fcoeffs[:p], [1]))[1:]
-        MApars = fcoeffs2coeffs(fcoeffs[p:])
+        ARpars = fcoeffs2coeffs(np.append(fcoeffs[:p], [1]))[1:]  # AR is in high->low
+        MApars = fcoeffs2coeffs(fcoeffs[p:])[::-1]  # MA is in low->order
 
         return ARpars, MApars
 

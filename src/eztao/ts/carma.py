@@ -176,7 +176,7 @@ def gpSimByTime(carmaTerm, SNR, t, factor=10, nLC=1):
 ## Below is about Fitting
 # -------------------------------------------------------------------------------------
 def neg_fcoeff_ll(fcoeffs, y, gp):
-    """CARMA neg log likelihood function.
+    """Negative CARMA log likelihood function.
 
     This method will catch 'overflow/underflow' runtimeWarning and
     return -inf as probablility.
@@ -211,7 +211,7 @@ def neg_fcoeff_ll(fcoeffs, y, gp):
 
 
 def neg_param_ll(params, y, gp):
-    """CARMA neg log likelihood function.
+    """Negative CARMA log likelihood function.
 
     This method will catch 'overflow/underflow' runtimeWarning and
     return -inf as probablility.
@@ -282,7 +282,7 @@ def carma_log_param_init(dim, ranges=None, size=1, a=-8.0, b=8.0):
             parameter is not specified. Defaults to 8.0.
 
     Returns:
-        Array: The generated CAMRA parameters in natural log.
+        Array: The generated CAMRA parameters in the natural log.
     """
     log_param = np.random.rand(size, int(dim))
 
@@ -302,31 +302,58 @@ def carma_log_param_init(dim, ranges=None, size=1, a=-8.0, b=8.0):
         return log_param
 
 
-def carma_log_fcoeff_init(dim, ranges=None, size=1, a=-8, b=8):
-    """Randomly generate DHO parameters from [a, b] in log.
+def carma_log_fcoeff_init(p, q, ranges=None, size=1, a=-8.0, b=8.0):
+    """Randomly generate CARMA poly coefficients from [a, b) in log.
 
     Args:
-        dim (int): For a CARMA(p,q) model, dim=p+q+1.
+        p (int): P order of a CARMA(p, q) model.
+        q (int): Q order of a CARMA(p, q) model.
+        ranges (list, optional): A list of tuples of custom ranges to draw poly
+            coefficient proposals from. Defaults to None.
+        size (int, optional): The number of the set of poly coefficients to generate.
+            Defaults to 1.
+        a (float, optional): The lower bound of the ranges, if a range for a specific
+            coefficient is not specified. Defaults to -8.0.
+        b (float, optional): The upper bound of the ranges, if a range for a specific
+            coefficient is not specified. Defaults to 8.0.
     Returns:
-        list: The generated CAMRA parameters in natural log.
+        Array: The generated CAMRA poly coefficients in the natural log.
     """
-    ## TODO: need to adjust highest order poly
-    log_param = np.random.rand(size, int(dim))
+    dim = int(p + q + 1)
+    log_coeff = np.random.rand(size, int(dim))
     if (ranges is not None) and (len(ranges) == int(dim)):
         for d in range(dim):
             if all(ranges[d]):
                 scale = ranges[d][1] - ranges[d][0]
-                log_param[:, d] = log_param[:, d] * scale - ranges[d][0]
+                log_coeff[:, d] = log_coeff[:, d] * scale - ranges[d][0]
             else:
-                log_param[:, d] = log_param[:, d] * (b - a) + a
+                log_coeff[:, d] = log_coeff[:, d] * (b - a) + a
     else:
-        log_param = log_param * (b - a) + a
+        log_coeff = log_coeff * (b - a) + a
 
-    return log_param
+    # if range for highest order MA not specified
+    if (ranges is None) or (not all(ranges[-1])):
+        perturb = np.random.rand(size, 1) * 10 - 5
+        log_ma_coeff = log_coeff[:, p:]
+        low_term = np.zeros((size, 1))
+
+        if q > 0:
+            if q % 2 == 0:
+                low_term += log_ma_coeff[:, -1][:, np.newaxis]
+            for i in range(1, q, 2):
+                low_term += log_ma_coeff[:, i][:, np.newaxis]
+
+        # update higher order MA
+        log_coeff[:, -1] = -low_term[:, 0] + perturb[:, 0]
+
+    if size == 1:
+        return log_coeff[0]
+    else:
+        return log_coeff
 
 
 def sample_carma(p, q, ranges=None, a=-6, b=6):
-    """Randomly drawing a valid CARMA process given the order.
+    """Randomly generate a stationary CARMA model given the orders.
 
     Args:
         p (int): CARMA p order.
@@ -335,80 +362,13 @@ def sample_carma(p, q, ranges=None, a=-6, b=6):
             Defaults to None.
 
     Returns:
-        AR parameters and MA paramters in seperate arrays.
+        AR parameters and MA paramters in two seperate arrays.
     """
-    init_fcoeffs = np.exp(carma_log_fcoeff_init(p + q + 1, ranges=ranges, a=a, b=b)[0])
+    init_fcoeffs = np.exp(carma_log_fcoeff_init(p, q, ranges=ranges, a=a, b=b))
     ARpars = fcoeffs2coeffs(np.append(init_fcoeffs[:p], [1]))[1:]
     MApars = fcoeffs2coeffs(init_fcoeffs[p:])
 
     return ARpars, MApars
-
-
-def _de_opt(y, best_fit, gp, init_func, mode, debug, bounds):
-    """Differential Evolution optimizer wrapper.
-
-    Args:
-        y (object): An array of y values.
-        best_fit (object): An empty array to store best fit parameters.
-        gp (object): celerite GP model object.
-        init_func (object): CARMA parameter initialization function,
-            i.e. drw_log_param_init.
-        mode (str): Specify which space to sample, 'param' or 'coeff'.
-        debug (bool): Turn on/off debug mode.
-        bounds (list): Initial parameter boundaries for the optimizer.
-
-    Returns:
-        object: An array of best-fit parameters
-    """
-
-    # dynamic control of fitting flow
-    succeded = False  # ever succeded
-    run_ct = 0
-    jac_log_rec = 10
-
-    # set the neg_ll function based on mode
-    neg_ll = neg_fcoeff_ll if mode == "coeff" else neg_param_ll
-
-    # set bound based on LC std for amp
-    while run_ct < 5:
-        run_ct += 1
-        r = differential_evolution(neg_ll, bounds=bounds, args=(y, gp), maxiter=200)
-
-        if r.success and (r.fun != -np.inf):
-            succeded = True
-            if mode == "param":
-                best_fit[:] = np.exp(r.x)
-            else:
-                gp.kernel.set_log_fcoeffs(r.x)
-                best_fit[:] = np.exp(gp.get_parameter_vector())
-
-            if "jac" not in r.keys():
-                run_ct += 5
-            else:
-                jac_log = np.log10(np.dot(r.jac, r.jac) + 1e-8)
-
-                # if positive jac, then increase bounds
-                if jac_log > 0:
-                    bounds = [(x[0] - 1, x[1] + 1) for x in bounds]
-                else:
-                    run_ct += 5
-
-                # update best-fit if smaller jac found
-                if jac_log < jac_log_rec:
-                    jac_log_rec = jac_log
-
-        else:
-            bounds = [(x[0] - 1, x[1] + 1) for x in bounds]
-            gp.set_parameter_vector(init_func())
-
-    # If opitimizer never reached minima, assign nan
-    if not succeded:
-        best_fit[:] = np.nan
-
-    if debug:
-        print(r)
-
-    return best_fit
 
 
 def _min_opt(
@@ -420,17 +380,16 @@ def _min_opt(
         y (object): An array of y values.
         best_fit (object): An empty array to store best fit parameters.
         gp (object): celerite GP model object.
-        init_func ([type]): CARMA parameter initialization function,
+        init_func (object): CARMA parameter/coefficient initialization function,
             i.e. drw_log_param_init.
         mode (str): Specify which space to sample, 'param' or 'coeff'.
-        debug (bool, optional): Turn on/off debug mode.
-        bounds (list): Initial parameter boundaries for the optimizer.
-        n_iter (int, optional): Number of iterations to run the optimizer.
-            Defaults to 10.
-        method (str, optional): Likelihood optimization method.
+        debug (bool): Turn on/off debug mode.
+        bounds (list): CARMA parameter/coefficient boundaries for the optimizer.
+        n_iter (int): Number of iterations to run the optimizer. Defaults to 10.
+        method (str, optional): Likelihood optimization method. Defaults to "L-BFGS-B".
 
     Returns:
-        object: An array of best-fit parameters
+        object: An array of best-fit CARMA parameters.
     """
 
     # set the neg_ll function based on mode
@@ -524,7 +483,7 @@ def drw_fit(t, y, yerr, debug=False, user_bounds=None, n_iter=10):
     return best_fit_return
 
 
-def dho_fit(t, y, yerr, debug=False, user_bounds=None, init_ranges=None, n_iter=10):
+def dho_fit(t, y, yerr, debug=False, user_bounds=None, init_ranges=None, n_iter=15):
     """Fix time series to a DHO model.
 
     Args:
@@ -537,7 +496,7 @@ def dho_fit(t, y, yerr, debug=False, user_bounds=None, init_ranges=None, n_iter=
         init_ranges (list, optional): A list of tuple of custom ranges to draw initial
             parameter proposals from. Defaults to None.
         n_iter (int, optional): Number of iterations to run the optimizer.
-            Defaults to 10.
+            Defaults to 15.
 
     Raises:
         celerite.solver.LinAlgError: For non-positive definite matrices.
@@ -581,9 +540,9 @@ def carma_fit(
     yerr,
     p,
     q,
-    diffEv=True,
     debug=False,
     user_bounds=None,
+    init_ranges=None,
     n_iter=10,
 ):
     """Fit time series to any CARMA model.
@@ -594,11 +553,13 @@ def carma_fit(
         yerr (object): An array of the errors in y values.
         p (int): P order of a CARMA(p, q) model.
         q (int): Q order of a CARMA(p, q) model.
-        diffEv (bool, optional): Whether to use differential_evolution as the
-            optimizer. Defaults to True.
         debug (bool, optional): Turn on/off debug mode. Defaults to False.
-        user_bounds (list, optional): Factorized polynomial coefficient boundaries
-            for the optimizer. Defaults to None.
+        user_bounds (list, optional): Parameter boundaries for the optimizer. If p > 0,
+            those are boundaries for the coefficients of the factored polynomial.
+            Defaults to None.
+        init_ranges (list, optional): A list of tuple of custom ranges to draw initial
+            parameter proposals from. If p > 0, same as the user_bounds. Defaults to
+            None.
         n_iter (int, optional): Number of iterations to run the optimizer if de==False.
             Defaults to 10.
 
@@ -606,7 +567,7 @@ def carma_fit(
         celerite.solver.LinAlgError: For non-positive definite matrices.
 
     Returns:
-        object: An array of best-fit CARMA parameters
+        object: An array of best-fit CARMA parameters.
     """
     dim = int(p + q + 1)
     best_fit = np.empty(dim)
@@ -614,14 +575,8 @@ def carma_fit(
     # init bounds for fitting
     if user_bounds is not None and (len(user_bounds) == dim):
         bounds = user_bounds
-    elif p == 2 and q == 1:
-        bounds = [(-10, 13), (-14, 7), (-10, 6), (-12, 3)]
-    elif p == 2 and q == 0:
-        bounds = [(-10, 16), (-14, 16), (-13, 15)]
     else:
-        ARbounds = [(-6, 3)] * p
-        MAbounds = [(-6, 1)] * (q + 1)
-        bounds = ARbounds + MAbounds
+        bounds = [(-15, 15)] * dim
 
     # re-position lc
     t = t - t[0]
@@ -635,31 +590,20 @@ def carma_fit(
 
     if p > 2:
         mode = "coeff"
-        init_func = lambda: carma_log_fcoeff_init(dim)
+        init_func = lambda: carma_log_fcoeff_init(p, q, ranges=init_ranges, size=n_iter)
     else:
         mode = "param"
-        init_func = lambda: carma_log_param_init(dim)
+        init_func = lambda: carma_log_param_init(dim, ranges=init_ranges, size=n_iter)
 
-    if diffEv:
-        best_fit_return = _de_opt(
-            y,
-            best_fit,
-            gp,
-            init_func,
-            mode,
-            debug,
-            bounds,
-        )
-    else:
-        best_fit_return = _min_opt(
-            y,
-            best_fit,
-            gp,
-            init_func,
-            mode,
-            debug,
-            bounds,
-            n_iter,
-        )
+    best_fit_return = _min_opt(
+        y,
+        best_fit,
+        gp,
+        init_func,
+        mode,
+        debug,
+        bounds,
+        n_iter,
+    )
 
     return best_fit_return
