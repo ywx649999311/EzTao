@@ -78,8 +78,8 @@ def test_simByTime():
 
 def test_pred_lc():
     """Test the carma_sim.pred_lc function."""
-    nLC = 5
 
+    nLC = 5
     for kernel in [drw2, dho1]:
         t0, y0, yerr0 = gpSimRand(kernel, 10, 365 * 10.0, 100, nLC=nLC)
 
