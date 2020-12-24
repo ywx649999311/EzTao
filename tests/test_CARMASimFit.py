@@ -15,7 +15,7 @@ drw3 = DRW_term(np.log(0.25), np.log(800))
 dho1 = DHO_term(np.log(0.04), np.log(0.0027941), np.log(0.004672), np.log(0.0257))
 dho2 = DHO_term(np.log(0.06), np.log(0.0001), np.log(0.0047), np.log(0.0157))
 carma31 = CARMA_term(np.log([3, 2.8, 0.8]), np.log([1, 5]))
-carma30 = CARMA_term(np.log([3, 3.189, 1.2]), np.log([1]))
+carma30 = CARMA_term(np.log([3, 3.189, 0.05]), np.log([0.5]))
 carma_invalid = CARMA_term(
     [1.95797093, -3.84868981, 0.71100209], [0.36438868, -2.96417798, 0.77545961]
 )
@@ -150,18 +150,18 @@ def test_dhoFit():
 
 def test_carmaFit():
 
-    # t1, y1, yerr1 = gpSimRand(carma30, 500, 365 * 2.0, 2500, nLC=200, season=False)
-    # best_fit_carma1 = np.array(
-    #     Parallel(n_jobs=-1)(
-    #         delayed(carma_fit)(t1[i], y1[i], yerr1[i], 3, 0) for i in range(len(t1))
-    #     )
-    # )
+    t1, y1, yerr1 = gpSimRand(carma30, 200, 365 * 10.0, 1500, nLC=150, season=False)
+    best_fit_carma1 = np.array(
+        Parallel(n_jobs=-1)(
+            delayed(carma_fit)(t1[i], y1[i], yerr1[i], 3, 0) for i in range(len(t1))
+        )
+    )
 
-    # diff1 = np.log(best_fit_carma1[:, -3]) - carma30.parameter_vector[-3]
+    diff1 = np.log(best_fit_carma1[:, -3]) - carma30.parameter_vector[-3]
 
-    # # make sure half of the best-fits is within +/- 50% of the true
-    # assert np.percentile(diff1, 25) > -0.4
-    # assert np.percentile(diff1, 75) < 0.4
+    # make sure half of the best-fits is within +/- 50% of the true
+    assert np.percentile(diff1, 25) > -0.4
+    assert np.percentile(diff1, 75) < 0.4
 
     # the second test will down scale lc by 1e6
     t2, y2, yerr2 = gpSimRand(carma31, 500, 365 * 5.0, 2500, nLC=200, season=False)
