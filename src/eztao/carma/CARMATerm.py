@@ -158,6 +158,10 @@ class DRW_term(terms.Term):
         log_sigma, log_tau = self.get_parameter_vector()
         return np.exp(log_sigma)
 
+    def get_carma_parameter(self):
+        """Return DRW parameters in CARMA parameterization."""
+        return [-self.get_parameter("log_tau"), np.log(self.get_perturb_amp())]
+
     @property
     def p(self):
         return 1

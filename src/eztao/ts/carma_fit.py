@@ -408,7 +408,7 @@ def carma_fit(
     """Fit time series to any CARMA model.
 
     Args:
-        t (object): An array of time stamps in days.
+        t (object): An array of time stamps (default in days).
         y (object): An array of y values.
         yerr (object): An array of the errors in y values.
         p (int): P order of a CARMA(p, q) model.
