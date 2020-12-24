@@ -1,9 +1,9 @@
-"""Testing CARMA Simulation.
+"""Testing CARMA simulation and fitting.
 """
 
 import numpy as np
 from eztao.carma import DRW_term, DHO_term, CARMA_term
-from eztao.ts.carma import *
+from eztao.ts import *
 from celerite import GP
 from joblib import Parallel, delayed
 import pytest
@@ -14,12 +14,12 @@ drw2 = DRW_term(np.log(0.15), np.log(300))
 drw3 = DRW_term(np.log(0.25), np.log(800))
 dho1 = DHO_term(np.log(0.04), np.log(0.0027941), np.log(0.004672), np.log(0.0257))
 dho2 = DHO_term(np.log(0.06), np.log(0.0001), np.log(0.0047), np.log(0.0157))
-carma30a = CARMA_term(np.log([3, 2.8, 0.8]), np.log([1]))
-carma30b = CARMA_term(np.log([3, 3.189, 1.2]), np.log([1]))
+carma31 = CARMA_term(np.log([3, 2.8, 0.8]), np.log([1, 5]))
+carma30 = CARMA_term(np.log([3, 3.189, 0.05]), np.log([0.5]))
 carma_invalid = CARMA_term(
     [1.95797093, -3.84868981, 0.71100209], [0.36438868, -2.96417798, 0.77545961]
 )
-test_kernels = [drw1, drw2, drw3, dho1, dho2, carma30a, carma30b]
+test_kernels = [drw1, drw2, drw3, dho1, dho2, carma30, carma31]
 
 
 def test_invalidSim():
@@ -50,30 +50,57 @@ def test_simRand():
     t, y, yerr = gpSimRand(dho2, 20, 365 * 10.0, 150, nLC=1, season=False)
     assert t.shape[0] == y.shape[0] == yerr.shape[0] == 150
 
+    # test regular flux (not in mag)
+    tF, yF, yerrF = gpSimRand(carma31, 20, 365 * 10.0, 150, nLC=1, log_flux=False)
+    assert (np.argsort(yF - yerrF) == np.argsort(-np.abs(yerrF))).all()
 
-def test_simByT():
-    """Test function gpSimByT."""
+
+def test_simByTime():
+    """Test function gpSimByTime."""
     t = np.sort(np.random.uniform(0, 3650, 5000))
-    kernels = [drw1, dho1, carma30b]
+    kernels = [drw1, dho1, carma30]
     nLC = 2
     SNR = 20
 
     for k in kernels:
         amp = k.get_rms_amp()
-        tOut, yOut, yerrOut = gpSimByT(k, SNR, t, nLC=nLC)
+        tOut, yOut, yerrOut = gpSimByTime(k, SNR, t, nLC=nLC)
 
         assert tOut.shape == (nLC, len(t))
         assert np.sum(yOut[0] < 0) > 0
         assert (np.argsort(yOut - yerrOut) == np.argsort(np.abs(yerrOut))).all()
         assert np.allclose(np.median(np.abs(yerrOut)), amp / SNR, rtol=0.2)
 
-    tOut, yOut, yerrOut = gpSimByT(dho2, SNR, t, nLC=1)
+    # test single LC simulation
+    tOut, yOut, yerrOut = gpSimByTime(dho2, SNR, t, nLC=1)
     assert tOut.shape[0] == yOut.shape[0] == yerrOut.shape[0] == t.shape[0]
+
+
+def test_pred_lc():
+    """Test the carma_sim.pred_lc function."""
+
+    nLC = 5
+    for kernel in [drw2, dho1]:
+        t0, y0, yerr0 = gpSimRand(kernel, 10, 365 * 10.0, 100, nLC=nLC)
+
+        for i in range(nLC):
+            best = carma_fit(t0[i], y0[i], yerr0[i], kernel.p, kernel.q)
+
+            # check if residual < error
+            t1, mu1, var1 = pred_lc(t0[i], y0[i], yerr0[i], best, kernel.p, t0[i])
+            assert mu1.shape == t1.shape
+            assert np.std(mu1 - y0[i]) < np.median(np.abs(yerr0[i]))
+
+            # check if any NaN in pred lc
+            t_pred = np.linspace(t1[0], t1[-1], 1000)
+            t2, mu2, var2 = pred_lc(t0[i], y0[i], yerr0[i], best, kernel.p, t_pred)
+            assert mu2.shape == t2.shape
+            assert not np.isnan(mu2).any()
 
 
 def test_drwFit():
 
-    for kernel in [drw1, drw2]:
+    for kernel in [drw1, drw2, drw3]:
         t, y, yerr = gpSimRand(kernel, 50, 365 * 10.0, 500, nLC=100, season=False)
         best_fit_drw = np.array(
             Parallel(n_jobs=-1)(
@@ -91,8 +118,7 @@ def test_drwFit():
 
 def test_dhoFit():
 
-    # use de
-    t1, y1, yerr1 = gpSimRand(dho1, 200, 365 * 10.0, 1000, nLC=100, season=False)
+    t1, y1, yerr1 = gpSimRand(dho1, 100, 365 * 10.0, 500, nLC=100, season=False)
     best_fit_dho1 = np.array(
         Parallel(n_jobs=-1)(
             delayed(dho_fit)(t1[i], y1[i], yerr1[i]) for i in range(len(t1))
@@ -103,67 +129,53 @@ def test_dhoFit():
 
     # make sure half of the best-fits is reasonal based-on
     # previous simulations. (see LC_fit_fuctions.ipynb)
-    assert np.percentile(diff1, 25) > -0.35
-    assert np.percentile(diff1, 75) < 0.1
+    assert np.percentile(diff1, 25) > -0.3
+    assert np.percentile(diff1, 75) < 0.2
 
-    # use min
-    t2, y2, yerr2 = gpSimRand(dho2, 200, 365 * 10.0, 1000, nLC=100, season=False)
+    # the second test will down scale lc by 1e6
+    t2, y2, yerr2 = gpSimRand(dho2, 100, 365 * 10.0, 500, nLC=100, season=False)
     best_fit_dho2 = np.array(
         Parallel(n_jobs=-1)(
-            delayed(dho_fit)(t2[i], y2[i], yerr2[i], de=False) for i in range(len(t2))
+            delayed(dho_fit)(t2[i], y2[i] / 1e6, yerr2[i] / 1e6) for i in range(len(t2))
         )
     )
 
-    diff2 = np.log(best_fit_dho2[:, -1]) - dho2.parameter_vector[-1]
+    diff2 = np.log(best_fit_dho2[:, -2]) - (dho2.parameter_vector[-2] - np.log(1e6))
 
     # make sure half of the best-fits is reasonal based-on
     # previous simulations. (see LC_fit_fuctions.ipynb)
-    assert np.percentile(diff2, 25) > -0.35
-    assert np.percentile(diff2, 75) < 0.1
+    assert np.percentile(diff2, 25) > -0.3
+    assert np.percentile(diff2, 75) < 0.2
 
 
 def test_carmaFit():
 
-    carma20a = CARMA_term(np.log([0.03939692, 0.00027941]), np.log([0.0046724]))
-    carma20b = CARMA_term(np.log([0.08, 0.00027941]), np.log([0.046724]))
-
-    t1, y1, yerr1 = gpSimRand(carma20a, 100, 365 * 10.0, 500, nLC=100, season=False)
+    t1, y1, yerr1 = gpSimRand(carma30, 200, 365 * 10.0, 1500, nLC=150, season=False)
     best_fit_carma1 = np.array(
         Parallel(n_jobs=-1)(
-            delayed(carma_fit)(t1[i], y1[i], yerr1[i], 2, 0, mode="coeff")
-            for i in range(len(t1))
+            delayed(carma_fit)(t1[i], y1[i], yerr1[i], 3, 0) for i in range(len(t1))
         )
     )
 
-    diff1 = np.log(best_fit_carma1[:, -1]) - carma20a.parameter_vector[-1]
+    diff1 = np.log(best_fit_carma1[:, -3]) - carma30.parameter_vector[-3]
 
-    # make sure half of the best-fits is reasonal based-on
-    # previous simulations. (see LC_fit_fuctions.ipynb)
-    assert np.percentile(diff1, 25) > -0.35
-    assert np.percentile(diff1, 75) < 0.1
+    # make sure half of the best-fits is within +/- 50% of the true
+    assert np.percentile(diff1, 25) > -0.4
+    assert np.percentile(diff1, 75) < 0.4
 
-    t2, y2, yerr2 = gpSimRand(carma20b, 100, 365 * 10.0, 500, nLC=100, season=False)
+    # the second test will down scale lc by 1e6
+    t2, y2, yerr2 = gpSimRand(carma31, 500, 365 * 5.0, 2500, nLC=200, season=False)
     best_fit_carma2 = np.array(
         Parallel(n_jobs=-1)(
-            delayed(carma_fit)(t2[i], y2[i], yerr2[i], 2, 0, de=False, mode="coeff")
+            delayed(carma_fit)(t2[i], y2[i] / 1e6, yerr2[i] / 1e6, 3, 1)
             for i in range(len(t2))
         )
     )
 
-    diff2 = np.log(best_fit_carma2[:, -1]) - carma20b.parameter_vector[-1]
+    diff2 = np.log(best_fit_carma2[:, -2]) - (
+        carma31.parameter_vector[-2] - np.log(1e6)
+    )
 
-    # make sure half of the best-fits is reasonal based-on
-    # previous simulations. (see LC_fit_fuctions.ipynb)
-    assert np.percentile(diff2, 25) > -0.35
-    assert np.percentile(diff2, 75) < 0.1
-
-    # use min opt, pass if no error thrown
-    for i in range(5):
-        try:
-            carma_fit(t1[i * 5], y1[i * 5], yerr1[i * 5], 3, 2, de=False)
-            carma_fit(t2[i * 5], y2[i * 5], yerr2[i * 5], 3, 0, de=False)
-        except ValueError as ve:
-            if "violates bound" in ve.message:
-                print(ve.message)
-            else:
-                raise ValueError("Unrecognized ValueEroor!")
+    # make sure half of the best-fits is within +/- 50% of the true
+    assert np.percentile(diff2, 25) > -0.6
+    assert np.percentile(diff2, 75) < 0.4

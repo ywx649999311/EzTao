@@ -1,7 +1,10 @@
+# dev folder
+/dev/*
+!/dev/00_template.ipynb
+
 # benchmark related
 /benchmark/*.ipynb
 /benchmark/*.csv
-
 
 # data
 /dev/testData/*

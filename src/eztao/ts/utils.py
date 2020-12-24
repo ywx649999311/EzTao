@@ -1,9 +1,8 @@
 import numpy as np
-from numba import njit, float64, int32, boolean, vectorize, guvectorize
-from scipy.spatial import KDTree
+from numba import njit
 from functools import partial
 
-__all__ = ["downsample_byN", "add_season", "downsample_byT"]
+__all__ = ["downsample_byN", "add_season", "downsample_byTime", "median_clip"]
 
 
 def downsample_byN(t, nObs):
@@ -32,7 +31,7 @@ def _get_nearest_idx(tIn, x):
     return (np.abs(tIn - x)).argmin()
 
 
-def downsample_byT(tIn, tOut):
+def downsample_byTime(tIn, tOut):
     """Find the indices of a downsampled light curve given output timestamps.
 
     Args:
@@ -67,3 +66,47 @@ def add_season(t, lc_start=0, season_start=90, season_end=270):
     mask = (np.mod(t, 365.25) > season_start) & (np.mod(t, 365.25) < season_end)
 
     return mask
+
+
+@njit
+def median_clip(y, num_sigma=3):
+    """
+    Clip time series using a three point median filter.
+
+    The sigma (standard deviation) for the time series is computed from the median  absolute deviation (MAD) as to reduce the effects from extreme outliers, where
+    sigma \sim 1.4826*MAD. If more than 10% of the data points are removed, the upper
+    bound will be lifted gradually until that fraction drops bellow 10%.
+
+    Args:
+        y (object): A 1d array of y values in a time series.
+        num_sigma (int, optional): Data points that are more than this number of sigma
+            away from the three point median will be removed. Defaults to 3.
+
+    Returns:
+        A 1d array booleans indicating which data point to keep.
+    """
+    y = np.atleast_1d(y)
+    lc_len = y.shape[0]
+    sigma = 0.6745 * np.median(np.abs(y - np.median(y)))
+    med = y.copy()
+    med[1:-2] = [np.median(y[i - 1 : i + 2]) for i in range(1, lc_len - 2)]
+
+    # need to deal with edges of median filter
+    med[0] = np.median(np.array([y[-1], y[0], y[1]]))
+    med[-1] = np.median(np.array([y[-2], y[-1], y[0]]))
+
+    # compute residual
+    res = np.abs(y - med)
+
+    # set clipping thresh hold
+    raise_bar = True
+    thresh = num_sigma * sigma
+
+    # if remove too much, raise bar until only remove 10%
+    while raise_bar:
+        ratio = np.sum(res > thresh) / lc_len
+        if ratio < 0.1:
+            break
+        else:
+            thresh += 0.1
+    return res < thresh
