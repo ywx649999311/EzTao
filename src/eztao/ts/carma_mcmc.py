@@ -8,26 +8,27 @@ from celerite import GP
 
 
 def mcmc(t, y, yerr, p, q, n_walkers=32, burn_in=500, n_samples=2000, init_param=None):
-    """A simple wrapper to run quick MCMC using emcee.
+    """
+    A simple wrapper to run quick MCMC using emcee.
 
     Args:
-        t (object): An array of time stamps (default in days).
-        y (object): An array of y values.
-        yerr (object): An array of the errors in y values.
-        p (int): P order of a CARMA(p, q) model.
-        q (int): Q order of a CARMA(p, q) model.
+        t (array(float)): Time stamps of the input time series (the default unit is day).
+        y (array(float)): y values of the input time series.
+        yerr (array(float)): Measurrement errors for y values.
+        p (int): The p order of a CARMA(p, q) model.
+        q (int): The q order of a CARMA(p, q) model.
         n_walkers (int, optional): Number of MCMC walkers. Defaults to 32.
         burn_in (int, optional): Number of burn in steps. Defaults to 500.
         n_samples (int, optional): Number of MCMC steps to run. Defaults to 2000.
-        init_param ([type], optional): The initial position for the MCMC walker.
+        init_param (array(float), optional): The initial position for the MCMC walker. 
             Defaults to None.
 
     Returns:
-        object: The emcee sampler object.
-        ndarray: The MCMC flatchain (n_walkers*n_samplers, dim) in CARMA space if
-            p > 2, otherwise empty.
-        ndarray: The MCMC chain (n_walkers, n_samplers, dim) in CARMA space if
-            p > 2, otherwise empty.
+        array(float): The emcee sampler object.
+        array(float): The MCMC flatchain (n_walkers*n_samplers, dim) in CARMA space if 
+        p > 2, otherwise empty.
+        array(float): The MCMC chain (n_walkers, n_samplers, dim) in CARMA space if 
+        p > 2, otherwise empty.
     """
     assert p > q, "p order must be greater than q order."
 
@@ -51,11 +52,7 @@ def mcmc(t, y, yerr, p, q, n_walkers=32, burn_in=500, n_samples=2000, init_param
 
     # create vectorized functions
     vec_fcoeff2carma = np.vectorize(
-        CARMA_term.fcoeffs2carma,
-        excluded=[
-            1,
-        ],
-        signature="(n)->(m),(k)",
+        CARMA_term.fcoeffs2carma, excluded=[1,], signature="(n)->(m),(k)",
     )
 
     # reposition ts

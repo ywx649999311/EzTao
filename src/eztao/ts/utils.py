@@ -1,3 +1,7 @@
+"""
+A collection of utility functions to assist analysis/simulation of time series data.
+"""
+
 import numpy as np
 from numba import njit
 from functools import partial
@@ -6,14 +10,15 @@ __all__ = ["downsample_byN", "add_season", "downsample_byTime", "median_clip"]
 
 
 def downsample_byN(t, nObs):
-    """Utility function to randomly choose N observation from a given light curves
+    """
+    Randomly choose N data points from a given time series.
 
     Args:
-        t (array_like): Time stamp of observations in the original light curve.
-        N (int): The number of observations in the final light curve.
+        t (array(float)): Time stamps of the original time series.
+        N (int): The number of entries in the final time series.
 
     Returns:
-        An mask of the original length to select data point.
+        A 1d array booleans indicating which data points to keep.
     """
     # random choose index
     idx = np.arange(len(t))
@@ -32,33 +37,34 @@ def _get_nearest_idx(tIn, x):
 
 
 def downsample_byTime(tIn, tOut):
-    """Find the indices of a downsampled light curve given output timestamps.
+    """
+    Downsample a time series at desired output time stamps.
 
     Args:
-        tIn (object): Numpy array containing the timestamps of the original
-            light curve.
-        tOut (object): Numpy array containing the timestamps of the ouput
-            light curve.
+        tIn (array(float)): Time stamps of the original time series.
+        tOut (array(float)): Time stamps of the ouput time series.
 
     Returns:
-        An numpy array of indices, which can be used to select data points from
-            the original light curve. Note that there could be duplicates.
+        array(int): Indices for which the data points should be kept from the original 
+        time series. Note that there could be duplicates.
     """
     get_nearest = partial(_get_nearest_idx, tIn)
     return np.array(list(map(get_nearest, tOut)))
 
 
 def add_season(t, lc_start=0, season_start=90, season_end=270):
-    """Utility function to impose seasonal gap in mock light curves
+    """
+    Insert seasonal gaps into time seriess
 
     Args:
-        t (array_like): Time stamp of observations in a light curve.
-        lc_start (float): Light curve starting day within a year (0 -> 365.25). Default to 0.
+        t (array(float)): Time stamps of the original time series.
+        lc_start (float): Starting day for the output time series. (0 -> 365.25). 
+            Default to 0.
         season_start (float): Observing season start day within a year. Default to 90.
         season_end (float): Observing season end day within a year. Default to 270.
 
     Returns:
-        An mask of the original length to select data point.
+        A 1d array booleans indicating which data points to keep.
     """
     t = t - t[0]
     t = t + lc_start
@@ -78,12 +84,12 @@ def median_clip(y, num_sigma=3):
     bound will be lifted gradually until that fraction drops bellow 10%.
 
     Args:
-        y (object): A 1d array of y values in a time series.
+        y (array(float)): y values of the original time series.
         num_sigma (int, optional): Data points that are more than this number of sigma
             away from the three point median will be removed. Defaults to 3.
 
     Returns:
-        A 1d array booleans indicating which data point to keep.
+        A 1d array booleans indicating which data points to keep.
     """
     y = np.atleast_1d(y)
     lc_len = y.shape[0]
