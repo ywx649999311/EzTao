@@ -24,7 +24,7 @@ def gpSimFull(carmaTerm, SNR, duration, N, nLC=1, log_flux=True):
         N (int): The number of data points in the simulated time series.
         nLC (int, optional): Number of time series to simulate. Defaults to 1.
         log_flux (bool): Whether the flux/y values are in log scale, i.e., magnitude. 
-            This argument affects how errors are assigned. Defaluts to True.
+            This argument affects how errors are assigned. Defaults to True.
 
     Raises:
         RuntimeError: If the input CARMA term/model is not stable, thus cannot be
@@ -33,7 +33,7 @@ def gpSimFull(carmaTerm, SNR, duration, N, nLC=1, log_flux=True):
     Returns:
         array(float): Time stamps of simulated time series (the default unit is day).
         array(float): y values of simulated time series.
-        array(float): Simulated measurrement errors, which have been added to y.
+        array(float): Simulated measurement errors, which have been added to y.
     """
 
     assert isinstance(
@@ -95,7 +95,7 @@ def gpSimRand(
         N (int): The number of data points in the simulated time series.
         nLC (int, optional): Number of time series to simulate. Defaults to 1.
         log_flux (bool): Whether the flux/y values are in log scale, i.e., magnitude. 
-            This argument affects how errors are assigned. Defaluts to True.
+            This argument affects how errors are assigned. Defaults to True.
         season (bool, optional): Whether to simulate 6-months seasonal gaps. Defaults 
             to True.
         full_N (int, optional): The number of data points in the full time series 
@@ -104,7 +104,7 @@ def gpSimRand(
     Returns:
         array(float): Time stamps of simulated time series (the default unit is day).
         array(float): y values of simulated time series.
-        array(float): Simulated measurrement errors, which have been added to y.
+        array(float): Simulated measurement errors, which have been added to y.
     """
     t, y, yerr = gpSimFull(carmaTerm, SNR, duration, full_N, nLC=nLC, log_flux=log_flux)
     t = np.atleast_2d(t)
@@ -147,17 +147,17 @@ def gpSimByTime(carmaTerm, SNR, t, factor=10, nLC=1, log_flux=True):
         SNR (float): Signal-to-noise defined as ratio between CARMA RMS amplitude and 
             the median of the measurement errors (simulated using log normal).
         t (array(float)): The desired time stamps.
-        factor (int, optional): Paramter to control the ratio in the sampling
+        factor (int, optional): Parameter to control the ratio in the sampling
             rate between the simulated full time series and the desired output one.
             Defaults to 10.
         nLC (int, optional): Number of time series to simulate. Defaults to 1.
         log_flux (bool): Whether the flux/y values are in log scale, i.e., magnitude. 
-            This argument affects how errors are assigned. Defaluts to True.
+            This argument affects how errors are assigned. Defaults to True.
 
     Returns:
         array(float): The desired time stamps for the simulated time series.
         array(float): y values of simulated time series.
-        array(float): Simulated measurrement errors, which have been added to y.    
+        array(float): Simulated measurement errors, which have been added to y.    
     """
     # get number points in full LC based on desired cadence
     duration = ceil(t[-1] - t[0])

@@ -14,7 +14,7 @@ def mcmc(t, y, yerr, p, q, n_walkers=32, burn_in=500, n_samples=2000, init_param
     Args:
         t (array(float)): Time stamps of the input time series (the default unit is day).
         y (array(float)): y values of the input time series.
-        yerr (array(float)): Measurrement errors for y values.
+        yerr (array(float)): Measurement errors for y values.
         p (int): The p order of a CARMA(p, q) model.
         q (int): The q order of a CARMA(p, q) model.
         n_walkers (int, optional): Number of MCMC walkers. Defaults to 32.

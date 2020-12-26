@@ -137,8 +137,8 @@ class DRW_term(terms.Term):
     Damped Random Walk (DRW) term.
 
     Args:
-        log_sigma (float): The natual log of the RMS amplitude of the DRW process.
-        log_tau (float): The natual log of the characteristic timescale of the DRW 
+        log_sigma (float): The natural log of the RMS amplitude of the DRW process.
+        log_tau (float): The natural log of the characteristic timescale of the DRW 
             process.
     """
 
@@ -173,8 +173,8 @@ class DRW_term(terms.Term):
         Compute the amplitude of the perturbing noise (beta_0) in DRW.
 
         Args:
-            log_sigma (float): The natual log of the RMS amplitude of the DRW process.
-            log_tau (float): The natual log of the characteristic timescale of the DRW 
+            log_sigma (float): The natural log of the RMS amplitude of the DRW process.
+            log_tau (float): The natural log of the characteristic timescale of the DRW 
                 process.
 
         Returns:
@@ -216,8 +216,8 @@ class CARMA_term(terms.Term):
     General CARMA term.
 
     Args:
-        log_arpars (array(float)): The natual log of AR coefficients.
-        log_mapars (array(float)): The natual log of MA coefficients.
+        log_arpars (array(float)): The natural log of AR coefficients.
+        log_mapars (array(float)): The natural log of MA coefficients.
     """
 
     def __init__(self, log_arpars, log_mapars, *args, **kwargs):
@@ -272,7 +272,7 @@ class CARMA_term(terms.Term):
         (AR polynomials always have the highest order coeff be 1).
 
         Args:
-            log_fcoeffs (array(float)): The natual log of coefficients for the factored 
+            log_fcoeffs (array(float)): The natural log of coefficients for the factored 
                 characteristic polynomial.
 
         """
@@ -346,8 +346,8 @@ class CARMA_term(terms.Term):
         Compute the RMS amplitude of a CARMA process.
 
         Args:
-            log_arpars (array(float)): The natual log of AR coefficients.
-            log_mapars (array(float)): The natual log of MA coefficients.
+            log_arpars (array(float)): The natural log of AR coefficients.
+            log_mapars (array(float)): The natural log of MA coefficients.
         
         Returns:
             The RMS amplitude of the CARMA process specified by the input parameters.
@@ -364,11 +364,11 @@ class CARMA_term(terms.Term):
         """Get the representation of a CARMA model in the factored polynomial space.
 
         Args:
-            log_arpars (array(float)): The natual log of AR coefficients.
-            log_mapars (array(float)): The natual log of MA coefficients.
+            log_arpars (array(float)): The natural log of AR coefficients.
+            log_mapars (array(float)): The natural log of MA coefficients.
 
         Returns:
-            array(float): The coefficents of the factored polymoical for the CARMA model 
+            array(float): The coefficients of the factored polymoical for the CARMA model 
                 specified by the input parameters.
         """
 
@@ -398,7 +398,7 @@ class CARMA_term(terms.Term):
             p (int): The p order of the CARMA model.
         
         Returns:
-            AR and MA parameters in two seperate arrays.
+            AR and MA parameters in two separate arrays.
         """
 
         fcoeffs = np.exp(log_fcoeffs)
@@ -412,10 +412,10 @@ class DHO_term(CARMA_term):
     """Damped Harmonic Oscillator (DHO) term.
 
     Args:
-        log_a1 (float): The natual logarithm of DHO parameter a1.
-        log_a2 (float): The natual logarithm of DHO parameter a2.
-        log_b0 (float): The natual logarithm of DHO parameter b0.
-        log_b1 (float): The natual logarithm of DHO parameter b1.
+        log_a1 (float): The natural logarithm of DHO parameter a1.
+        log_a2 (float): The natural logarithm of DHO parameter a2.
+        log_b0 (float): The natural logarithm of DHO parameter b0.
+        log_b1 (float): The natural logarithm of DHO parameter b1.
     """
 
     def __init__(self, log_a1, log_a2, log_b0, log_b1, *args, **kwargs):

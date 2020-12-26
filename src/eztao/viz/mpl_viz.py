@@ -28,13 +28,13 @@ def plot_drw_ll(
     Args:
         t (array(float)): Time stamps of the input time series (the default unit is day).
         y (array(float)): y values of the input time series.
-        yerr (array(float)): Measurrement errors for y values.
+        yerr (array(float)): Measurement errors for y values.
         best_params (array(float)): Best-fit DRW parameters, [amp, tau].
         gp (object): celerite GP object with a proper DRW kernel.
         prob_func (func): Posterior/Likelihood function with args=(params, y, gp)
-        amp_range (tuple, optional): The range of parameters to evaluate likelihod.
+        amp_range (tuple, optional): The range of parameters to evaluate likelihood.
             Defaults to None.
-        tau_range (tuple, optional): The range of parameters to evaluate likelihod.
+        tau_range (tuple, optional): The range of parameters to evaluate likelihood.
             Defaults to None.
         nLevels (int, optional): The number of levels in the final contour plot.
             Defaults to 10.
@@ -51,7 +51,7 @@ def plot_drw_ll(
     if tau_range is None:
         tau_range = [best_tau / np.e, np.e * best_tau]
 
-    # check if custom resoultion
+    # check if custom resolution
     if "grid_size" in kwargs:
         grid_size = int(kwargs.get("grid_size"))
 
@@ -150,7 +150,7 @@ def plot_dho_ll(
     Args:
         t (array(float)): Time stamps of the input time series (the default unit is day).
         y (array(float)): y values of the input time series.
-        yerr (array(float)): Measurrement errors for y values.
+        yerr (array(float)): Measurement errors for y values.
         best_params (array(float)): Best-fit DHO parameters in [a1, a2, b0, b1].
         gp (object): celerite GP object with a proper DHO kernel.
         prob_func (func): Posterior/Likelihood function with args=(params, y, gp).
@@ -158,7 +158,7 @@ def plot_dho_ll(
             a1 and a2. Defaults to 10.
         outer_dim (int, optional): The number of points to eval likelihood along
             b0 and b1. Defaults to 4.
-        ranges (list, optional): Parameters ranges (in natual log) within which to plot
+        ranges (list, optional): Parameters ranges (in natural log) within which to plot
             the surface. Defaults to [(None, None), (None, None), (None, None),
             (None, None)].
         nLevels (int, optional): The number of levels in the final contour plot. 
@@ -240,7 +240,7 @@ def plot_dho_ll(
     b0s = grid_ls[2]
     b1s = grid_ls[3]
 
-    # loop over each grid point on outler layer
+    # loop over each grid point on outer layer
     for i in range(outer_dim):
         for j in range(outer_dim):
             _ = axs[i, j].contourf(
@@ -297,7 +297,7 @@ def plot_pred_lc(t, y, yerr, params, p, t_pred, plot_input=True):
     Args:
         t (array(float)): Time stamps of the input time series.
         y (array(float)): y values of the input time series.
-        yerr (array(float)): Measurrement errors for y values.
+        yerr (array(float)): Measurement errors for y values.
         params (array(float)): Best-fit CARMA parameters
         p (int): The AR order (p) of the best-fit model.
         t_pred (array(float)): Time stamps at which to generate predictions.

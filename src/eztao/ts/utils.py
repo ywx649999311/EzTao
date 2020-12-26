@@ -42,7 +42,7 @@ def downsample_byTime(tIn, tOut):
 
     Args:
         tIn (array(float)): Time stamps of the original time series.
-        tOut (array(float)): Time stamps of the ouput time series.
+        tOut (array(float)): Time stamps of the output time series.
 
     Returns:
         array(int): Indices for which the data points should be kept from the original 
@@ -54,7 +54,7 @@ def downsample_byTime(tIn, tOut):
 
 def add_season(t, lc_start=0, season_start=90, season_end=270):
     """
-    Insert seasonal gaps into time seriess
+    Insert seasonal gaps into time series
 
     Args:
         t (array(float)): Time stamps of the original time series.

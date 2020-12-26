@@ -25,10 +25,10 @@ def neg_fcoeff_ll(fcoeffs, y, gp):
     Negative log likelihood function for CARMA specified in the factored poly space.
 
     This method will catch 'overflow/underflow' runtimeWarning and
-    return inf as probablility.
+    return inf as probability.
 
     Args:
-        fcoeffs (array(float)): Coeffcients of a CARMA model in the factored polynomial 
+        fcoeffs (array(float)): Coefficients of a CARMA model in the factored polynomial 
             space.
         y (array(float)): y values of the input time series.
         gp (object): celerite GP object with a proper CARMA kernel.
@@ -59,10 +59,10 @@ def neg_fcoeff_ll(fcoeffs, y, gp):
 
 def neg_param_ll(params, y, gp):
     """
-    Negative log likelihood function for CARMA specified in the norminal space.
+    Negative log likelihood function for CARMA specified in the nominal space.
 
     This method will catch 'overflow/underflow' runtimeWarning and
-    return inf as probablility.
+    return inf as probability.
 
     Args:
         params (array(float)): CARMA parameters.
@@ -100,7 +100,7 @@ def drw_log_param_init(std, size=1, max_tau=6.0):
         std (float): The standard deviation of the input time series.
         size (int, optional): The number of the set of DRW parameters to generate. 
             Defaults to 1.
-        max_tau (float): The maximum likely tau (in natual log). Defaults to 6.0.
+        max_tau (float): The maximum likely tau (in natural log). Defaults to 6.0.
 
     Returns:
         array(float): A ndarray of DRW parameters in natural log.
@@ -118,7 +118,7 @@ def drw_log_param_init(std, size=1, max_tau=6.0):
 
 def carma_log_param_init(p, q, ranges=None, size=1, a=-8.0, b=8.0, shift=0):
     """
-    Randomly generate CARMA parameters from [a, b) in natual log.
+    Randomly generate CARMA parameters from [a, b) in natural log.
 
     Args:
         dim (int): For a CARMA(p,q) model, dim=p+q+1.
@@ -159,7 +159,7 @@ def carma_log_param_init(p, q, ranges=None, size=1, a=-8.0, b=8.0, shift=0):
 def carma_log_fcoeff_init(p, q, ranges=None, size=1, a=-8.0, b=8.0, shift=0):
     """
     Randomly generate CARMA coefficients in the factored polynomial space from [a, b) 
-    in natual log.
+    in natural log.
 
     Args:
         p (int): The p order of a CARMA(p, q) model.
@@ -222,7 +222,7 @@ def sample_carma(p, q, ranges=None, a=-6, b=6, shift=0):
             Defaults to None.
 
     Returns:
-        AR and MA coefficients in two seperate arrays.
+        AR and MA coefficients in two separate arrays.
     """
     init_fcoeffs = np.exp(
         carma_log_fcoeff_init(p, q, ranges=ranges, a=a, b=b, shift=shift)
@@ -296,7 +296,7 @@ def drw_fit(t, y, yerr, debug=False, user_bounds=None, n_iter=10):
     Args:
         t (array(float)): Time stamps of the input time series (the default unit is day).
         y (array(float)): y values of the input time series.
-        yerr (array(float)): Measurrement errors for y values.
+        yerr (array(float)): Measurement errors for y values.
         debug (bool, optional): Turn on/off debug mode. Defaults to False.
         user_bounds (list, optional): Parameter boundaries for the optimizer.
             Defaults to None.
@@ -348,7 +348,7 @@ def dho_fit(t, y, yerr, debug=False, user_bounds=None, init_ranges=None, n_iter=
     Args:
         t (array(float)): Time stamps of the input time series (the default unit is day).
         y (array(float)): y values of the input time series.
-        yerr (array(float)): Measurrement errors for y values.
+        yerr (array(float)): Measurement errors for y values.
         debug (bool, optional): Turn on/off debug mode. Defaults to False.
         user_bounds (list, optional): Parameter boundaries for the optimizer.
             Defaults to None.
@@ -405,12 +405,12 @@ def carma_fit(
     t, y, yerr, p, q, debug=False, user_bounds=None, init_ranges=None, n_iter=15,
 ):
     """
-    Fit time series to an arbitray CARMA model.
+    Fit time series to an arbitrary CARMA model.
 
     Args:
         t (array(float)): Time stamps of the input time series (the default unit is day).
         y (array(float)): y values of the input time series.
-        yerr (array(float)): Measurrement errors for y values.
+        yerr (array(float)): Measurement errors for y values.
         p (int): The p order of a CARMA(p, q) model.
         q (int): The q order of a CARMA(p, q) model.
         debug (bool, optional): Turn on/off debug mode. Defaults to False.
