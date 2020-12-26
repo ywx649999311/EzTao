@@ -17,6 +17,8 @@ __all__ = [
     "neg_param_ll",
     "drw_log_param_init",
     "carma_log_param_init",
+    "carma_log_fcoeff_init",
+    "sample_carma",
 ]
 
 
@@ -375,13 +377,13 @@ def dho_fit(t, y, yerr, debug=False, user_bounds=None, init_ranges=None, n_iter=
     y = y - np.median(y)
 
     # determine shift due amp too large/small
-    shift = 0
-    if np.std(y) < 1e-4 or np.std(y) > 1e-4:
+    shift = np.array(0)
+    if np.std(y) < 1e-4 or np.std(y) > 1e4:
         shift = np.log(np.std(y))
         bounds[2:] += shift
 
     # initialize parameter, kernel and GP
-    kernel = DHO_term(*carma_log_param_init(2, 1, shift=shift))
+    kernel = DHO_term(*carma_log_param_init(2, 1, shift=float(shift)))
     gp = GP(kernel, mean=0)
     gp.compute(t, yerr)
 
@@ -390,7 +392,7 @@ def dho_fit(t, y, yerr, debug=False, user_bounds=None, init_ranges=None, n_iter=
         best_fit,
         gp,
         lambda: carma_log_param_init(
-            2, 1, ranges=init_ranges, size=n_iter, shift=shift
+            2, 1, ranges=init_ranges, size=n_iter, shift=float(shift)
         ),
         "param",
         debug,
@@ -443,12 +445,12 @@ def carma_fit(
     y = y - np.median(y)
 
     # determine shift due amp too large/small
-    shift = 0
-    if np.std(y) < 1e-4 or np.std(y) > 1e-4:
+    shift = np.array(0)
+    if np.std(y) < 1e-4 or np.std(y) > 1e4:
         shift = np.log(np.std(y))
 
     # initialize parameter and kernel
-    ARpars, MApars = sample_carma(p, q, shift=shift)
+    ARpars, MApars = sample_carma(p, q, shift=float(shift))
     kernel = CARMA_term(np.log(ARpars), np.log(MApars))
     gp = GP(kernel, mean=0)
     gp.compute(t, yerr)
@@ -456,13 +458,13 @@ def carma_fit(
     if p > 2:
         mode = "coeff"
         init_func = lambda: carma_log_fcoeff_init(
-            p, q, ranges=init_ranges, size=n_iter, shift=shift
+            p, q, ranges=init_ranges, size=n_iter, shift=float(shift)
         )
         bounds[-1] += shift
     else:
         mode = "param"
         init_func = lambda: carma_log_param_init(
-            p, q, ranges=init_ranges, size=n_iter, shift=shift
+            p, q, ranges=init_ranges, size=n_iter, shift=float(shift)
         )
         bounds[p:] += shift
 

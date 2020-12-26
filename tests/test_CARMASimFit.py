@@ -127,7 +127,7 @@ def test_dhoFit():
 
     diff1 = np.log(best_fit_dho1[:, -1]) - dho1.parameter_vector[-1]
 
-    # make sure half of the best-fits is reasonal based-on
+    # make sure half of the best-fits is reasonable based-on
     # previous simulations. (see LC_fit_fuctions.ipynb)
     assert np.percentile(diff1, 25) > -0.3
     assert np.percentile(diff1, 75) < 0.2
@@ -142,7 +142,7 @@ def test_dhoFit():
 
     diff2 = np.log(best_fit_dho2[:, -2]) - (dho2.parameter_vector[-2] - np.log(1e6))
 
-    # make sure half of the best-fits is reasonal based-on
+    # make sure half of the best-fits is reasonable based-on
     # previous simulations. (see LC_fit_fuctions.ipynb)
     assert np.percentile(diff2, 25) > -0.3
     assert np.percentile(diff2, 75) < 0.2
@@ -167,13 +167,13 @@ def test_carmaFit():
     t2, y2, yerr2 = gpSimRand(carma31, 500, 365 * 5.0, 2500, nLC=200, season=False)
     best_fit_carma2 = np.array(
         Parallel(n_jobs=-1)(
-            delayed(carma_fit)(t2[i], y2[i] / 1e6, yerr2[i] / 1e6, 3, 1)
+            delayed(carma_fit)(t2[i], y2[i] / 1e-6, yerr2[i] / 1e-6, 3, 1)
             for i in range(len(t2))
         )
     )
 
     diff2 = np.log(best_fit_carma2[:, -2]) - (
-        carma31.parameter_vector[-2] - np.log(1e6)
+        carma31.parameter_vector[-2] - np.log(1e-6)
     )
 
     # make sure half of the best-fits is within +/- 50% of the true
