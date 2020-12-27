@@ -301,7 +301,7 @@ def plot_pred_lc(t, y, yerr, params, p, t_pred, plot_input=True):
         params (array(float)): Best-fit CARMA parameters
         p (int): The AR order (p) of the best-fit model.
         t_pred (array(float)): Time stamps at which to generate predictions.
-        plot_input (bool): Whether to plot the input time series.
+        plot_input (bool): Whether to plot the input time series. Defaults to True.
     """
 
     # get pred lc
@@ -314,8 +314,8 @@ def plot_pred_lc(t, y, yerr, params, p, t_pred, plot_input=True):
     ax.plot(t_pred, mu, color=color, label="Mean Prediction", alpha=0.8)
 
     # if valid variance returned
-    if np.median(var) > np.median(np.abs(yerr)) / 1e10:
-        std = np.std(var)
+    if np.median(var) > (np.median(np.abs(yerr)) / 1e10):
+        std = np.sqrt(var)
         ax.fill_between(
             t_pred, mu + std, mu - std, color=color, alpha=0.3, edgecolor="none"
         )
