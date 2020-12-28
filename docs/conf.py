@@ -12,11 +12,11 @@
 #
 import os
 import sys
-import eztao
+sys.path.insert(0, os.path.abspath("../src/"))
 
-sys.path.insert(0, os.path.abspath("../../src/eztao"))
-
-
+# get version from pyproject.toml
+import toml
+config = toml.load('../pyproject.toml')
 # -- Project information -----------------------------------------------------
 
 project = "EzTao"
@@ -24,8 +24,8 @@ copyright = "2020, Weixiang Yu"
 author = "Weixiang Yu"
 
 # The full version, including alpha/beta/rc tags
-version = eztao.__version__
-release = eztao.__version__
+version = config['tool']['poetry']['version']
+release = config['tool']['poetry']['version']
 
 
 # -- General configuration ---------------------------------------------------
@@ -55,7 +55,7 @@ templates_path = ["_templates"]
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = "Python"
+# language = "Python"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
