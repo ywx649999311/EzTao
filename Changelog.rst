@@ -1,5 +1,14 @@
 .. :changelog:
 
+0.2.4rc0 (2020-12-27)
++++++++++++++++++++++
+
+- update parameter initialization in fit functions; removed `de` option #26, #27 
+- add few utils functions #30, #25
+- add mcmc module #29
+- ts simulation now support linear error
+- added online documentation
+
 0.2.3 (2020-12-08)
 ++++++++++++++++++
 

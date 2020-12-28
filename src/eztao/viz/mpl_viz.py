@@ -3,7 +3,6 @@ A few random plotting functions.
 """
 
 import matplotlib.pyplot as plt
-import matplotlib as mpl
 import numpy as np
 import celerite
 from eztao.carma.CARMATerm import *
