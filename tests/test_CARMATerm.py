@@ -1,4 +1,5 @@
 from eztao.carma.CARMATerm import *
+from eztao.carma.CARMATerm import fcoeffs2coeffs
 import numpy as np
 from numpy.polynomial import polynomial as P
 
