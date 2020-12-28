@@ -1,3 +1,7 @@
+"""
+A few random plotting functions.
+"""
+
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import numpy as np
@@ -18,25 +22,26 @@ def plot_drw_ll(
     nLevels=10,
     **kwargs,
 ):
-    """Plot DRW likelihood surface.
+    """
+    Plot DRW log likelihood surface.
 
     Args:
-        t (object): An array of time points.
-        y (object): An array of fluxes at the abvoe time points.
-        yerr (object): An array of photometric errors.
-        best_params (object): Best-fit parameters in [amp, tau].
-        gp (object): A DRW celerite GP object.
-        prob_func (func): Posterior/Likelihood function with args=(params, y, yerr, gp)
-        amp_range (object, optional): The range of parameters to evaluate likelihod.
+        t (array(float)): Time stamps of the input time series (the default unit is day).
+        y (array(float)): y values of the input time series.
+        yerr (array(float)): Measurement errors for y values.
+        best_params (array(float)): Best-fit DRW parameters, [amp, tau].
+        gp (object): celerite GP object with a proper DRW kernel.
+        prob_func (func): Posterior/Likelihood function with args=(params, y, gp)
+        amp_range (tuple, optional): The range of parameters to evaluate likelihood.
             Defaults to None.
-        tau_range (object, optional): The range of parameters to evaluate likelihod.
+        tau_range (tuple, optional): The range of parameters to evaluate likelihood.
             Defaults to None.
-        nLevels (int, optional): The number of levels in the coutour plot.
+        nLevels (int, optional): The number of levels in the final contour plot.
             Defaults to 10.
 
-    Kwargs:
+    Keyword Args:
         grid_size (int): The number of points to evaluate likelihood along a given axis.
-        true_params (object): The true DRW parameters of the provided light curve.
+        true_params (array(float)): The true DRW parameters of the input time series.
     """
     best_amp, best_tau = best_params
     grid_size = 40
@@ -46,7 +51,7 @@ def plot_drw_ll(
     if tau_range is None:
         tau_range = [best_tau / np.e, np.e * best_tau]
 
-    # check if custom resoultion
+    # check if custom resolution
     if "grid_size" in kwargs:
         grid_size = int(kwargs.get("grid_size"))
 
@@ -139,26 +144,28 @@ def plot_dho_ll(
     nLevels=10,
     **kwargs,
 ):
-    """Plot DHO likelihood surface.
+    """
+    Plot DHO/CARMA(2,1) log likelihood lanscape.
 
     Args:
-        t (object): An array of time points.
-        y (object): An array of fluxes at the abvoe time points.
-        yerr (object): An array of photometric errors.
-        best_params (object): Best-fit parameters in [a1, a2, b0, b1].
-        gp (object): A DRW celerite GP object.
-        prob_func (func): Posterior/Likelihood function with args=(params, y, yerr, gp).
+        t (array(float)): Time stamps of the input time series (the default unit is day).
+        y (array(float)): y values of the input time series.
+        yerr (array(float)): Measurement errors for y values.
+        best_params (array(float)): Best-fit DHO parameters in [a1, a2, b0, b1].
+        gp (object): celerite GP object with a proper DHO kernel.
+        prob_func (func): Posterior/Likelihood function with args=(params, y, gp).
         inner_dim (int, optional): The number of points to eval likelihood along
             a1 and a2. Defaults to 10.
         outer_dim (int, optional): The number of points to eval likelihood along
             b0 and b1. Defaults to 4.
-        ranges (list, optional): Parameters range (log) within which to plot
+        ranges (list, optional): Parameters ranges (in natural log) within which to plot
             the surface. Defaults to [(None, None), (None, None), (None, None),
             (None, None)].
-        nLevels (int, optional): Contour plot number of levels. Defaults to 10.
+        nLevels (int, optional): The number of levels in the final contour plot. 
+            Defaults to 10.
 
-    Kwargs:
-        true_params (object): The true parameters of the underlying DHO process if known.
+    Keyword Args:
+        true_params (array(float)): The true DHO parameters of the input time series.
     """
     best_log = np.log(best_params)
     num_param = len(best_log)
@@ -233,7 +240,7 @@ def plot_dho_ll(
     b0s = grid_ls[2]
     b1s = grid_ls[3]
 
-    # loop over each grid point on outler layer
+    # loop over each grid point on outer layer
     for i in range(outer_dim):
         for j in range(outer_dim):
             _ = axs[i, j].contourf(
@@ -285,16 +292,16 @@ def plot_dho_ll(
 
 def plot_pred_lc(t, y, yerr, params, p, t_pred, plot_input=True):
     """
-    Plot GP predicted light curve given best-fit parameters.
+    Plot GP predicted time series given best-fit parameters.
 
     Args:
-        t (object): A 1d array of time stamps from the initial time series.
-        y (object): A 1d array of y values (i.e., flux) from the initial time series.
-        yerr (object): A 1d array of measurement errors from the initial time series.
-        params (object): Array-like, best-fit CARMA parameters
+        t (array(float)): Time stamps of the input time series.
+        y (array(float)): y values of the input time series.
+        yerr (array(float)): Measurement errors for y values.
+        params (array(float)): Best-fit CARMA parameters
         p (int): The AR order (p) of the best-fit model.
-        t_pred (object): Time stamps at which to generate predictions.
-        plot_input (bool): Whether to plot the input time series.
+        t_pred (array(float)): Time stamps at which to generate predictions.
+        plot_input (bool): Whether to plot the input time series. Defaults to True.
     """
 
     # get pred lc
@@ -307,8 +314,8 @@ def plot_pred_lc(t, y, yerr, params, p, t_pred, plot_input=True):
     ax.plot(t_pred, mu, color=color, label="Mean Prediction", alpha=0.8)
 
     # if valid variance returned
-    if np.median(var) > np.median(np.abs(yerr)) / 1e10:
-        std = np.std(var)
+    if np.median(var) > (np.median(np.abs(yerr)) / 1e10):
+        std = np.sqrt(var)
         ax.fill_between(
             t_pred, mu + std, mu - std, color=color, alpha=0.3, edgecolor="none"
         )

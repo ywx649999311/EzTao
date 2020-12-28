@@ -1,4 +1,5 @@
-"""Functions related to CARMA process simulations.
+"""
+A collection of functions for simulating CARMA processes.
 """
 
 import numpy as np
@@ -12,26 +13,27 @@ __all__ = ["gpSimFull", "gpSimRand", "gpSimByTime", "pred_lc"]
 
 
 def gpSimFull(carmaTerm, SNR, duration, N, nLC=1, log_flux=True):
-    """Simulate full CARMA time series.
+    """
+    Simulate CARMA time series using uniform sampling.
 
     Args:
-        carmaTerm (object): celerite GP term.
-        SNR (float): Signal to noise ratio defined as ratio between
-            CARMA amplitude and the mode of the errors (simulated using
-            log normal).
-        duration (float): The duration of the simulated time series in days.
-        N (int): The number of data points.
-        nLC (int, optional): Number of light curves to simulate. Defaults to 1.
-        log_flux (bool): Whether the flux/y values should be in log scale, i.e.,
-            magnitude. This argument affects how errors are assigned. Defaluts to True.
+        carmaTerm (object): An EzTao CARMA kernel.
+        SNR (float): Signal-to-noise defined as ratio between CARMA RMS amplitude and 
+            the median of the measurement errors (simulated using log normal).
+        duration (float): The duration of the simulated time series (default in days).
+        N (int): The number of data points in the simulated time series.
+        nLC (int, optional): Number of time series to simulate. Defaults to 1.
+        log_flux (bool): Whether the flux/y values are in log scale, i.e., magnitude. 
+            This argument affects how errors are assigned. Defaults to True.
 
     Raises:
         RuntimeError: If the input CARMA term/model is not stable, thus cannot be
             solved by celerite.
 
     Returns:
-        Arrays: t, y and yerr of the simulated light curves in numpy arrays.
-            Note that errors have been added to y.
+        array(float): Time stamps of simulated time series (the default unit is day).
+        array(float): y values of simulated time series.
+        array(float): Simulated measurement errors, which have been added to y.
     """
 
     assert isinstance(
@@ -82,26 +84,27 @@ def gpSimFull(carmaTerm, SNR, duration, N, nLC=1, log_flux=True):
 def gpSimRand(
     carmaTerm, SNR, duration, N, nLC=1, log_flux=True, season=True, full_N=10_000
 ):
-    """Simulate randomly downsampled CARMA time series.
+    """
+    Simulate CARMA time series randomly downsampled from a much denser full time series.
 
     Args:
-        carmaTerm (object): celerite GP term.
-        SNR (float): Signal to noise ratio defined as ratio between
-            CARMA amplitude and the mode of the errors (simulated using
-            log normal).
-        duration (float): The duration of the simulated time series in days.
-        N (int): The number of data points in the returned light curves.
-        nLC (int, optional): Number of light curves to simulate. Defaults to 1.
-        log_flux (bool): Whether the flux/y values should be in log scale, i.e.,
-            magnitude. This argument affects how errors are assigned. Defaluts to True.
-        season (bool, optional): Whether to simulate seasonal gaps.
-            Defaults to True.
-        full_N (int, optional): The number of data points the full light curves.
-            Defaults to 10_000.
+        carmaTerm (object): An EzTao CARMA kernel.
+        SNR (float): Signal-to-noise defined as ratio between CARMA RMS amplitude and 
+            the median of the measurement errors (simulated using log normal).
+        duration (float): The duration of the simulated time series (default in days).
+        N (int): The number of data points in the simulated time series.
+        nLC (int, optional): Number of time series to simulate. Defaults to 1.
+        log_flux (bool): Whether the flux/y values are in log scale, i.e., magnitude. 
+            This argument affects how errors are assigned. Defaults to True.
+        season (bool, optional): Whether to simulate 6-months seasonal gaps. Defaults 
+            to True.
+        full_N (int, optional): The number of data points in the full time series 
+            (before downsampling). Defaults to 10_000.
 
     Returns:
-        Arrays: t, y and yerr of the simulated light curves in numpy arrays.
-            Note that errors have been added to y.
+        array(float): Time stamps of simulated time series (the default unit is day).
+        array(float): y values of simulated time series.
+        array(float): Simulated measurement errors, which have been added to y.
     """
     t, y, yerr = gpSimFull(carmaTerm, SNR, duration, full_N, nLC=nLC, log_flux=log_flux)
     t = np.atleast_2d(t)
@@ -131,29 +134,30 @@ def gpSimRand(
 
 
 def gpSimByTime(carmaTerm, SNR, t, factor=10, nLC=1, log_flux=True):
-    """Simulate CARMA time series at the provided timestamps.
+    """
+    Simulate CARMA time series at desired time stamps.
 
-    This function uses a 'factor' parameter to determine the sampling rate
-    of the initial(full) time series to simulate and downsample from. For
-    example, if 'factor' = 10, then the initial time series will be 10 times
-    denser than the median sampling rate of the provided timestamps.
+    This function uses a 'factor' parameter to determine the sampling rate of a full 
+    time series to simulate and downsample from. For example, if 'factor' = 10, then 
+    the full time series will be 10 times denser than the median sampling rate of the 
+    provided time stamps.
 
     Args:
-        carmaTerm (object): celerite GP term.
-        SNR (float): Signal to noise ratio defined as ratio between
-            CARMA amplitude and the mode of the errors (simulated using
-            log normal).
-        t (int): Input timestamps.
-        factor (int, optional): Paramter to control the ratio in the sampling
-            ratebetween the simulated full time series and the desired output.
+        carmaTerm (object): An EzTao CARMA kernel.
+        SNR (float): Signal-to-noise defined as ratio between CARMA RMS amplitude and 
+            the median of the measurement errors (simulated using log normal).
+        t (array(float)): The desired time stamps.
+        factor (int, optional): Parameter to control the ratio in the sampling
+            rate between the simulated full time series and the desired output one.
             Defaults to 10.
-        nLC (int, optional): Number of light curves to simulate. Defaults to 1.
-        log_flux (bool): Whether the flux/y values should be in log scale, i.e.,
-            magnitude. This argument affects how errors are assigned. Defaluts to True.
+        nLC (int, optional): Number of time series to simulate. Defaults to 1.
+        log_flux (bool): Whether the flux/y values are in log scale, i.e., magnitude. 
+            This argument affects how errors are assigned. Defaults to True.
 
     Returns:
-        Arrays: t, y and yerr of the simulated light curves in numpy arrays.
-            Note that errors have been added to y.
+        array(float): The desired time stamps for the simulated time series.
+        array(float): y values of simulated time series.
+        array(float): Simulated measurement errors, which have been added to y.    
     """
     # get number points in full LC based on desired cadence
     duration = ceil(t[-1] - t[0])
@@ -181,23 +185,24 @@ def gpSimByTime(carmaTerm, SNR, t, factor=10, nLC=1, log_flux=True):
 
 
 def pred_lc(t, y, yerr, params, p, t_pred, return_var=True):
-    """Generate model predicted values at arbitrary time stamps given the initial
+    """
+    Generate predicted values at particular time stamps given the initial
     time series and a best-fit model.
 
     Args:
-        t (object): A 1d array of time stamps from the initial time series.
-        y (object): A 1d array of y values (i.e., flux) from the initial time series.
-        yerr (object): A 1d array of measurement errors from the initial time series.
-        params (object): Array-like, best-fit CARMA parameters
-        p (int): The AR order (p) of the best-fit model.
-        t_pred (object): A 1d array of time stamps to generate predicted time series.
+        t (array(float)): Time stamps of the initial time series.
+        y (array(float)): y values (i.e., flux) of the initial time series.
+        yerr (array(float)): Measurement errors of the initial time series.
+        params (array(float)): Best-fit CARMA parameters
+        p (int): The AR order (p) of the given best-fit model.
+        t_pred (array(float)): Time stamps to generate predicted time series.
         return_var (bool, optional): Whether to return uncertainties in the mean
             prediction. Defaults to True.
 
     Returns:
-        object: Same as the input t_pred.
-        object: A 1d array of mean prediction at t_pred.
-        object: A 1d array of uncertainties (variance) in the mean prediction at t_pred.
+        array(float): Same as the input t_pred.
+        array(float): Mean prediction at t_pred.
+        array(float): Uncertainties (variance) in the mean prediction at t_pred.
     """
 
     assert p >= len(params) - p, "The dimension of AR must be greater than that of MA"

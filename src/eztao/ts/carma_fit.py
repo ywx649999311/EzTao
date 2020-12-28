@@ -1,4 +1,5 @@
-"""Functions for performing CARMA analysis (fitting) on LCs.
+"""
+A collection of functions to fit/analyze time series using CARMA models.
 """
 
 import numpy as np
@@ -16,22 +17,26 @@ __all__ = [
     "neg_param_ll",
     "drw_log_param_init",
     "carma_log_param_init",
+    "carma_log_fcoeff_init",
+    "sample_carma",
 ]
 
 
 def neg_fcoeff_ll(fcoeffs, y, gp):
-    """Negative CARMA log likelihood function.
+    """
+    Negative log likelihood function for CARMA specified in the factored poly space.
 
     This method will catch 'overflow/underflow' runtimeWarning and
-    return -inf as probablility.
+    return inf as probability.
 
     Args:
-        fcoeffs (object): Array-like, CARMA polynomial coeffs in the facotrized form.
-        y (object): Array-like, y values of the time series.
-        gp (object): celerite GP model with the proper kernel.
+        fcoeffs (array(float)): Coefficients of a CARMA model in the factored polynomial 
+            space.
+        y (array(float)): y values of the input time series.
+        gp (object): celerite GP object with a proper CARMA kernel.
 
     Returns:
-        float: neg log likelihood.
+        float: negative log likelihood.
     """
 
     assert gp.kernel.p >= 2, "Use neg_param_ll() instead!"
@@ -55,18 +60,19 @@ def neg_fcoeff_ll(fcoeffs, y, gp):
 
 
 def neg_param_ll(params, y, gp):
-    """Negative CARMA log likelihood function.
+    """
+    Negative log likelihood function for CARMA specified in the nominal space.
 
     This method will catch 'overflow/underflow' runtimeWarning and
-    return -inf as probablility.
+    return inf as probability.
 
     Args:
-        params (object): Array-like, CARMA parameters.
-        y (object): Array-like, y values of the time series.
-        gp (object): celerite GP model with the proper kernel.
+        params (array(float)): CARMA parameters.
+        y (array(float)): y values of the input time series.
+        gp (object): celerite GP object with a proper CARMA kernel.
 
     Returns:
-        float: neg log likelihood.
+        float: negative log likelihood.
     """
     assert gp.kernel.p <= 2, "Use neg_fcoeff_ll() instead!"
 
@@ -89,16 +95,17 @@ def neg_param_ll(params, y, gp):
 
 
 def drw_log_param_init(std, size=1, max_tau=6.0):
-    """Randomly generate DRW parameters.
+    """
+    Randomly generate DRW parameters.
 
     Args:
-        std (float): The std of the LC to fit.
-        size (int, optional): The number of the set of CARMA parameters to generate.
+        std (float): The standard deviation of the input time series.
+        size (int, optional): The number of the set of DRW parameters to generate. 
             Defaults to 1.
-        max_tau (float): The maximum likely tau in the natual log. Defaults to 6.0.
+        max_tau (float): The maximum likely tau (in natural log). Defaults to 6.0.
 
     Returns:
-        Array: The generated DRW parameters in natural log.
+        array(float): A ndarray of DRW parameters in natural log.
     """
 
     init_tau = np.exp(np.random.rand(size, 1) * max_tau)
@@ -112,21 +119,22 @@ def drw_log_param_init(std, size=1, max_tau=6.0):
 
 
 def carma_log_param_init(p, q, ranges=None, size=1, a=-8.0, b=8.0, shift=0):
-    """Randomly generate CARMA parameters from [a, b) in log.
+    """
+    Randomly generate CARMA parameters from [a, b) in natural log.
 
     Args:
         dim (int): For a CARMA(p,q) model, dim=p+q+1.
-        ranges (list, optional): A list of tuples of custom ranges to draw parameter
-            proposals from. Defaults to None.
+        ranges (list, optional): Tuples of custom ranges to draw parameter proposals 
+            from. Defaults to None.
         size (int, optional): The number of the set of CARMA parameters to generate.
             Defaults to 1.
-        a (float, optional): The lower bound of the ranges, if a range for a specific
+        a (float, optional): The lower bound of the ranges, if the range for a specific
             parameter is not specified. Defaults to -8.0.
-        b (float, optional): The upper bound of the ranges, if a range for a specific
+        b (float, optional): The upper bound of the ranges, if the range for a specific
             parameter is not specified. Defaults to 8.0.
 
     Returns:
-        Array: The generated CAMRA parameters in the natural log.
+        array(float): A ndarray of CAMRA parameters in natural log.
     """
     dim = int(p + q + 1)
     log_param = np.random.rand(size, int(dim))
@@ -151,21 +159,24 @@ def carma_log_param_init(p, q, ranges=None, size=1, a=-8.0, b=8.0, shift=0):
 
 
 def carma_log_fcoeff_init(p, q, ranges=None, size=1, a=-8.0, b=8.0, shift=0):
-    """Randomly generate CARMA poly coefficients from [a, b) in log.
+    """
+    Randomly generate CARMA coefficients in the factored polynomial space from [a, b) 
+    in natural log.
 
     Args:
-        p (int): P order of a CARMA(p, q) model.
-        q (int): Q order of a CARMA(p, q) model.
-        ranges (list, optional): A list of tuples of custom ranges to draw poly
-            coefficient proposals from. Defaults to None.
-        size (int, optional): The number of the set of poly coefficients to generate.
+        p (int): The p order of a CARMA(p, q) model.
+        q (int): The q order of a CARMA(p, q) model.
+        ranges (list, optional): Tuples of custom ranges to draw polynomial coefficient 
+            proposals from. Defaults to None.
+        size (int, optional): The number of the set of coefficients to generate.
             Defaults to 1.
-        a (float, optional): The lower bound of the ranges, if a range for a specific
+        a (float, optional): The lower bound of the ranges, if the range for a specific
             coefficient is not specified. Defaults to -8.0.
-        b (float, optional): The upper bound of the ranges, if a range for a specific
+        b (float, optional): The upper bound of the ranges, if the range for a specific
             coefficient is not specified. Defaults to 8.0.
+    
     Returns:
-        Array: The generated CAMRA poly coefficients in the natural log.
+        array(float): A ndarray of CAMRA parameters in natural log.
     """
     dim = int(p + q + 1)
     log_coeff = np.random.rand(size, int(dim))
@@ -203,16 +214,17 @@ def carma_log_fcoeff_init(p, q, ranges=None, size=1, a=-8.0, b=8.0, shift=0):
 
 
 def sample_carma(p, q, ranges=None, a=-6, b=6, shift=0):
-    """Randomly generate a stationary CARMA model given the orders.
+    """
+    Randomly generate a stationary CARMA model given the orders (p and q).
 
     Args:
-        p (int): CARMA p order.
-        q (int): CARMA q order.
-        ranges (list): A list tuple of ranges from which to draw each parameter.
+        p (int): The p order of a CARMA(p, q) model.
+        q (int): The q order of a CARMA(p, q) model.
+        ranges (list): Tuple of custom ranges to draw polynomial coefficients from. 
             Defaults to None.
 
     Returns:
-        AR parameters and MA paramters in two seperate arrays.
+        AR and MA coefficients in two separate arrays.
     """
     init_fcoeffs = np.exp(
         carma_log_fcoeff_init(p, q, ranges=ranges, a=a, b=b, shift=shift)
@@ -229,8 +241,8 @@ def _min_opt(
     """A wrapper for scipy.optimize.minimize.
 
     Args:
-        y (object): An array of y values.
-        best_fit (object): An empty array to store best fit parameters.
+        y (array(float)): An array of y values.
+        best_fit (array(float)): An empty array to store best fit parameters.
         gp (object): celerite GP model object.
         init_func (object): CARMA parameter/coefficient initialization function,
             i.e. drw_log_param_init.
@@ -238,10 +250,10 @@ def _min_opt(
         debug (bool): Turn on/off debug mode.
         bounds (list): CARMA parameter/coefficient boundaries for the optimizer.
         n_iter (int): Number of iterations to run the optimizer. Defaults to 10.
-        method (str, optional): Likelihood optimization method. Defaults to "L-BFGS-B".
+        method (str, optional): scipy.optimize.minimize method. Defaults to "L-BFGS-B".
 
     Returns:
-        object: An array of best-fit CARMA parameters.
+        array(float): Best-fit CARMA parameters.
     """
 
     # set the neg_ll function based on mode
@@ -253,11 +265,7 @@ def _min_opt(
 
     for i in range(n_iter):
         r = minimize(
-            neg_ll,
-            initial_params[i],
-            method=method,
-            bounds=bounds,
-            args=(y, gp),
+            neg_ll, initial_params[i], method=method, bounds=bounds, args=(y, gp),
         )
 
         if r.success and (r.fun != -np.inf):
@@ -284,23 +292,23 @@ def _min_opt(
 
 
 def drw_fit(t, y, yerr, debug=False, user_bounds=None, n_iter=10):
-    """Fix time series to a DRW model.
+    """
+    Fit time series to DRW.
 
     Args:
-        t (object): An array of time stamps in days.
-        y (object): An array of y values.
-        yerr (object): An array of the errors in y values.
+        t (array(float)): Time stamps of the input time series (the default unit is day).
+        y (array(float)): y values of the input time series.
+        yerr (array(float)): Measurement errors for y values.
         debug (bool, optional): Turn on/off debug mode. Defaults to False.
         user_bounds (list, optional): Parameter boundaries for the optimizer.
             Defaults to None.
-        n_iter (int, optional): Number of iterations to run the optimizer if de==False.
-            Defaults to 10.
+        n_iter (int, optional): Number of iterations to run the optimizer. Defaults to 10.
 
     Raises:
-        celerite.solver.LinAlgError: For non-positive definite matrices.
+        celerite.solver.LinAlgError: For non-positive definite autocovariance matrices.
 
     Returns:
-        object: An array of best-fit parameters
+        array(float): Best-fit parameters
     """
 
     best_fit = np.empty(2)
@@ -336,25 +344,26 @@ def drw_fit(t, y, yerr, debug=False, user_bounds=None, n_iter=10):
 
 
 def dho_fit(t, y, yerr, debug=False, user_bounds=None, init_ranges=None, n_iter=15):
-    """Fix time series to a DHO model.
+    """
+    Fit time series to DHO/CARMA(2,1).
 
     Args:
-        t (object): An array of time stamps in days.
-        y (object): An array of y values.
-        yerr (object): An array of the errors in y values.
+        t (array(float)): Time stamps of the input time series (the default unit is day).
+        y (array(float)): y values of the input time series.
+        yerr (array(float)): Measurement errors for y values.
         debug (bool, optional): Turn on/off debug mode. Defaults to False.
         user_bounds (list, optional): Parameter boundaries for the optimizer.
             Defaults to None.
-        init_ranges (list, optional): A list of tuple of custom ranges to draw initial
-            parameter proposals from. Defaults to None.
+        init_ranges (list, optional): Tuples of custom ranges to draw polynomial 
+            coefficient proposals from. Defaults to None.
         n_iter (int, optional): Number of iterations to run the optimizer.
             Defaults to 15.
 
     Raises:
-        celerite.solver.LinAlgError: For non-positive definite matrices.
+        celerite.solver.LinAlgError: For non-positive definite autocovariance matrices.
 
     Returns:
-        object: An array of best-fit parameters
+        array(float): Best-fit parameters
     """
     best_fit = np.zeros(4)
 
@@ -368,13 +377,13 @@ def dho_fit(t, y, yerr, debug=False, user_bounds=None, init_ranges=None, n_iter=
     y = y - np.median(y)
 
     # determine shift due amp too large/small
-    shift = 0
-    if np.std(y) < 1e-4 or np.std(y) > 1e-4:
+    shift = np.array(0)
+    if np.std(y) < 1e-4 or np.std(y) > 1e4:
         shift = np.log(np.std(y))
         bounds[2:] += shift
 
     # initialize parameter, kernel and GP
-    kernel = DHO_term(*carma_log_param_init(2, 1, shift=shift))
+    kernel = DHO_term(*carma_log_param_init(2, 1, shift=float(shift)))
     gp = GP(kernel, mean=0)
     gp.compute(t, yerr)
 
@@ -383,7 +392,7 @@ def dho_fit(t, y, yerr, debug=False, user_bounds=None, init_ranges=None, n_iter=
         best_fit,
         gp,
         lambda: carma_log_param_init(
-            2, 1, ranges=init_ranges, size=n_iter, shift=shift
+            2, 1, ranges=init_ranges, size=n_iter, shift=float(shift)
         ),
         "param",
         debug,
@@ -395,39 +404,32 @@ def dho_fit(t, y, yerr, debug=False, user_bounds=None, init_ranges=None, n_iter=
 
 
 def carma_fit(
-    t,
-    y,
-    yerr,
-    p,
-    q,
-    debug=False,
-    user_bounds=None,
-    init_ranges=None,
-    n_iter=10,
+    t, y, yerr, p, q, debug=False, user_bounds=None, init_ranges=None, n_iter=15,
 ):
-    """Fit time series to any CARMA model.
+    """
+    Fit time series to an arbitrary CARMA model.
 
     Args:
-        t (object): An array of time stamps (default in days).
-        y (object): An array of y values.
-        yerr (object): An array of the errors in y values.
-        p (int): P order of a CARMA(p, q) model.
-        q (int): Q order of a CARMA(p, q) model.
+        t (array(float)): Time stamps of the input time series (the default unit is day).
+        y (array(float)): y values of the input time series.
+        yerr (array(float)): Measurement errors for y values.
+        p (int): The p order of a CARMA(p, q) model.
+        q (int): The q order of a CARMA(p, q) model.
         debug (bool, optional): Turn on/off debug mode. Defaults to False.
-        user_bounds (list, optional): Parameter boundaries for the optimizer. If p > 0,
-            those are boundaries for the coefficients of the factored polynomial.
+        user_bounds (list, optional): Parameter boundaries for the optimizer. If p > 2,
+            these are boundaries for the coefficients of the factored polynomial.
             Defaults to None.
-        init_ranges (list, optional): A list of tuple of custom ranges to draw initial
-            parameter proposals from. If p > 0, same as the user_bounds. Defaults to
+        init_ranges (list, optional): Tuples of custom ranges to draw initial
+            parameter proposals from. If p > 2, same as for the user_bounds. Defaults to
             None.
         n_iter (int, optional): Number of iterations to run the optimizer if de==False.
-            Defaults to 10.
+            Defaults to 15.
 
     Raises:
-        celerite.solver.LinAlgError: For non-positive definite matrices.
+        celerite.solver.LinAlgError: For non-positive definite autocovariance matrices.
 
     Returns:
-        object: An array of best-fit CARMA parameters.
+        array(float): Best-fit parameters
     """
     dim = int(p + q + 1)
     best_fit = np.empty(dim)
@@ -443,12 +445,12 @@ def carma_fit(
     y = y - np.median(y)
 
     # determine shift due amp too large/small
-    shift = 0
-    if np.std(y) < 1e-4 or np.std(y) > 1e-4:
+    shift = np.array(0)
+    if np.std(y) < 1e-4 or np.std(y) > 1e4:
         shift = np.log(np.std(y))
 
     # initialize parameter and kernel
-    ARpars, MApars = sample_carma(p, q, shift=shift)
+    ARpars, MApars = sample_carma(p, q, shift=float(shift))
     kernel = CARMA_term(np.log(ARpars), np.log(MApars))
     gp = GP(kernel, mean=0)
     gp.compute(t, yerr)
@@ -456,25 +458,16 @@ def carma_fit(
     if p > 2:
         mode = "coeff"
         init_func = lambda: carma_log_fcoeff_init(
-            p, q, ranges=init_ranges, size=n_iter, shift=shift
+            p, q, ranges=init_ranges, size=n_iter, shift=float(shift)
         )
         bounds[-1] += shift
     else:
         mode = "param"
         init_func = lambda: carma_log_param_init(
-            p, q, ranges=init_ranges, size=n_iter, shift=shift
+            p, q, ranges=init_ranges, size=n_iter, shift=float(shift)
         )
         bounds[p:] += shift
 
-    best_fit_return = _min_opt(
-        y,
-        best_fit,
-        gp,
-        init_func,
-        mode,
-        debug,
-        bounds,
-        n_iter,
-    )
+    best_fit_return = _min_opt(y, best_fit, gp, init_func, mode, debug, bounds, n_iter,)
 
     return best_fit_return

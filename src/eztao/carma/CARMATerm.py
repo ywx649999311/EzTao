@@ -1,8 +1,13 @@
+"""
+A collection of GP kernels that express the autovariance structure of CARMA models using 
+celerite.
+"""
+
 import numpy as np
 from celerite import terms
 from numba import njit, float64, complex128, int32, vectorize
 
-__all__ = ["acf", "DRW_term", "DHO_term", "CARMA_term", "fcoeffs2coeffs"]
+__all__ = ["acf", "DRW_term", "DHO_term", "CARMA_term"]
 
 
 @njit(complex128[:](complex128[:]))
@@ -42,7 +47,11 @@ def polymul(poly1, poly2):
 
 @njit(float64[:](float64[:]))
 def fcoeffs2coeffs(fcoeffs):
-    """Convert from factored poly coeffs to the coeffs of the product."""
+    """
+    From factored poly coeffs to the coeffs of the product.
+    
+    :meta private:
+    """
     size = fcoeffs.shape[0] - 1
     odd = np.bool(size & 0x1)
     nPair = size // 2
@@ -59,11 +68,10 @@ def fcoeffs2coeffs(fcoeffs):
 
 
 def _roots2coeffs(roots):
-    """Generate factored polynomial given the roots"""
+    """Generate factored polynomial from roots"""
     coeffs = []
     size = len(roots)
     odd = np.bool(size & 0x1)
-    # nPair = size // 2
     rootsComp = roots[roots.imag != 0]
     rootsReal = roots[roots.imag == 0]
     nCompPair = len(rootsComp) // 2
@@ -88,22 +96,22 @@ def _roots2coeffs(roots):
 
 @njit(complex128[:](complex128[:], float64[:], float64[:]))
 def acf(arroots, arparam, maparam):
-    """Return CARMA ACF coefficients given model parameter in Brockwell et al.
-    2001 notation.
+    """
+    Get ACVF coefficients given CARMA parameters in Brockwell et al. 2001 notation.
 
     Args:
-        arroots (object): AR roots in a numpy array
-        arparam (object): AR parameters in a numpy array
-        maparam (object): MA parameters in a numpy array
+        arroots (array(complex)): AR roots in a numpy array
+        arparam (array(float)): AR parameters in a numpy array
+        maparam (array(float)): MA parameters in a numpy array
 
     Returns:
-        ACF coefficients in an array, each element correspond to a root
+        array(complex): ACVF coefficients, each element correspond to a root.
     """
     p = arparam.shape[0]
     q = maparam.shape[0] - 1
     sigma = maparam[0]
 
-    # MA param into Kell's notation
+    # MA param into Kelly's notation
     # arparam = np.array(arparam)
     maparam = np.array([x / sigma for x in maparam])
 
@@ -125,41 +133,73 @@ def acf(arroots, arparam, maparam):
 
 
 class DRW_term(terms.Term):
-    """Damped Random Walk term.
+    """
+    Damped Random Walk (DRW) term.
 
     Args:
-        log_sigma(float): Sigma is the standard deviation of the DRW process.
-        log_tau(float): Tau is the characteristic timescale of the DRW process.
+        log_sigma (float): The natural log of the RMS amplitude of the DRW process.
+        log_tau (float): The natural log of the characteristic timescale of the DRW 
+            process.
     """
 
     parameter_names = ("log_sigma", "log_tau")
 
     def get_real_coefficients(self, params):
+        """
+        Get ``alpha_real`` and ``beta_real`` (coefficients of celerite's real kernel).
+        
+        Args:
+            params (array(float)): Parameters of this kernel.
+
+        Returns:
+            (``alpha_real``, ``beta_real``).
+        """
         log_sigma, log_tau = params
         return (np.exp(2 * log_sigma), 1 / np.exp(log_tau))
 
     def get_perturb_amp(self):
-        """Return the perturbing noise amplitude (b0)."""
+        """
+        Get the amplitude of the perturbing noise (beta_0) in DRW.
+        
+        Returns:
+            The amplitude of the perturbing noise (beta_0) in the current DRW.
+        """
         log_sigma, log_tau = self.get_parameter_vector()
         return self.perturb_amp(log_sigma, log_tau)
 
     @staticmethod
     def perturb_amp(log_sigma, log_tau):
-        """Return the perturbing noise amplitude (b0).
+        """
+        Compute the amplitude of the perturbing noise (beta_0) in DRW.
 
         Args:
-            log_sigma(float): Sigma is the standard deviation of the DRW process.
-            log_tau(float): Tau is the characteristic timescale of the DRW process.
+            log_sigma (float): The natural log of the RMS amplitude of the DRW process.
+            log_tau (float): The natural log of the characteristic timescale of the DRW 
+                process.
+
+        Returns:
+            The amplitude of the perturbing noise (beta_0) in the DRW specified by the 
+            input parameters.
         """
         return np.exp((2 * log_sigma - np.log(1 / 2) - log_tau) / 2)
 
     def get_rms_amp(self):
-        """Return the amplitude of CARMA process."""
+        """
+        Get the RMS amplitude of this DRW process.
+        
+        Returns:
+            The RMS amplitude of this DRW process.
+        """
         log_sigma, log_tau = self.get_parameter_vector()
         return np.exp(log_sigma)
 
     def get_carma_parameter(self):
-        """Return DRW parameters in CARMA parameterization."""
+        """
+        Get DRW parameters in CARMA notation (alpha_*/beta_*).
+        
+        Returns:
+            [alpha_1, beta_0].
+        """
         return [-self.get_parameter("log_tau"), np.log(self.get_perturb_amp())]
 
     @property
@@ -172,11 +212,12 @@ class DRW_term(terms.Term):
 
 
 class CARMA_term(terms.Term):
-    """General CARMA term with arbitray parameters.
+    """
+    General CARMA term.
 
     Args:
-        log_arpars (list): The logarithm of AR coefficients.
-        log_mapars (list): The logarithm of MA coefficients.
+        log_arpars (array(float)): The natural log of AR coefficients.
+        log_mapars (array(float)): The natural log of MA coefficients.
     """
 
     def __init__(self, log_arpars, log_mapars, *args, **kwargs):
@@ -230,6 +271,10 @@ class CARMA_term(terms.Term):
         the conversion, a 1 is added to the AR coeffs to maintain the same formatting
         (AR polynomials always have the highest order coeff be 1).
 
+        Args:
+            log_fcoeffs (array(float)): The natural log of coefficients for the factored 
+                characteristic polynomial.
+
         """
         if log_fcoeffs.shape[0] != (self._dim):
             raise ValueError("Dimension mismatch!")
@@ -240,6 +285,16 @@ class CARMA_term(terms.Term):
         self.set_parameter_vector(np.log(np.append(ARpars, MApars)))
 
     def get_real_coefficients(self, params):
+        """
+        Get arrays of ``alpha_real`` and ``beta_real`` (coefficients of celerite's 
+        real kernel).
+        
+        Args:
+            params (array(float)): Parameters of this kernel.
+        
+        Returns:
+            Arrays of ``alpha_real`` and ``beta_real``, one for each.
+        """
 
         # trigger re_compute & get celerite coeffs
         self._compute(params)
@@ -252,6 +307,18 @@ class CARMA_term(terms.Term):
         return (ar, cr)
 
     def get_complex_coefficients(self, params):
+        """
+        Get arrays of ``alpha_complex_real``, ``alpha_complex_imag``, 
+        ``beta_complex_real`` and ``beta_complex_imag`` (coefficients of celerite's 
+        complex kernel).
+        
+        Args:
+            params (array(float)): Parameters of this kernel.
+        
+        Returns:
+            Arrays of ``alpha_complex_real``, ``alpha_complex_imag``, 
+            ``beta_complex_real`` and ``beta_complex_imag``, one for each.
+        """
 
         acf_complex = self.acf[self.mask]
         roots_complex = self._arroots[self.mask]
@@ -264,17 +331,26 @@ class CARMA_term(terms.Term):
         return (ac, bc, cc, dc)
 
     def get_rms_amp(self):
-        """Return the amplitude of current CARMA process."""
+        """
+        Get the RMS amplitude of this CARMA process.
+        
+        Returns:
+            The RMS amplitude of this CARMA process.
+        """
         log_pars = self.get_parameter_vector()
         return self.rms_amp(log_pars[: self.p], log_pars[self.p :])
 
     @staticmethod
     def rms_amp(log_arpars, log_mapars):
-        """Return the amplitude of a CARMA process.
+        """
+        Compute the RMS amplitude of a CARMA process.
 
         Args:
-            log_arpars (list): The logarithm of AR coefficients.
-            log_mapars (list): The logarithm of MA coefficients.
+            log_arpars (array(float)): The natural log of AR coefficients.
+            log_mapars (array(float)): The natural log of MA coefficients.
+        
+        Returns:
+            The RMS amplitude of the CARMA process specified by the input parameters.
         """
         _p = len(log_arpars)
         _pars = _compute_exp(np.append(log_arpars, log_mapars))
@@ -285,11 +361,15 @@ class CARMA_term(terms.Term):
 
     @staticmethod
     def carma2fcoeffs(log_arpars, log_mapars):
-        """Return the representation of a CARMA model in the factored polynomical space.
+        """Get the representation of a CARMA model in the factored polynomial space.
 
         Args:
-            log_arpars (list): The logarithm of AR coefficients.
-            log_mapars (list): The logarithm of MA coefficients.
+            log_arpars (array(float)): The natural log of AR coefficients.
+            log_mapars (array(float)): The natural log of MA coefficients.
+
+        Returns:
+            array(float): The coefficients of the factored polymoical for the CARMA model 
+                specified by the input parameters.
         """
 
         _p = len(log_arpars)
@@ -310,11 +390,15 @@ class CARMA_term(terms.Term):
 
     @staticmethod
     def fcoeffs2carma(log_fcoeffs, p):
-        """Return the representation of a CARMA model in the nominal parameter space.
+        """Get the representation of a CARMA model in the nominal CARMA parameter space.
 
         Args:
-            log_coeffs (object): The array of poly coefficients in the factored form.
+            log_coeffs (array(float)): The array of coefficients for the factored 
+                polynomial.
             p (int): The p order of the CARMA model.
+        
+        Returns:
+            AR and MA parameters in two separate arrays.
         """
 
         fcoeffs = np.exp(log_fcoeffs)
@@ -325,13 +409,13 @@ class CARMA_term(terms.Term):
 
 
 class DHO_term(CARMA_term):
-    """Damped Harmonic Oscillator term.
+    """Damped Harmonic Oscillator (DHO) term.
 
     Args:
-        log_a1 (float): The natual logarithm of DHO parameter a1.
-        log_a2 (float): The natual logarithm of DHO parameter a2.
-        log_b0 (float): The natual logarithm of DHO parameter b0.
-        log_b1 (float): The natual logarithm of DHO parameter b1.
+        log_a1 (float): The natural logarithm of DHO parameter a1.
+        log_a2 (float): The natural logarithm of DHO parameter a2.
+        log_b0 (float): The natural logarithm of DHO parameter b0.
+        log_b1 (float): The natural logarithm of DHO parameter b1.
     """
 
     def __init__(self, log_a1, log_a2, log_b0, log_b1, *args, **kwargs):
