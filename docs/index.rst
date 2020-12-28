@@ -8,7 +8,7 @@ Installation
 ------------
 **EzTao** can be installed with `pip`_ using::
 
-   pip install EzTao
+   pip install eztao
 
 
 .. raw:: html
