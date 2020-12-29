@@ -32,7 +32,7 @@ def gpSimFull(carmaTerm, SNR, duration, N, nLC=1, log_flux=True):
 
     Returns:
         (array(float), array(float), array(float)): Time stamps (default in day), y 
-        values and measurement errors of simulated time series.
+        values and measurement errors of the simulated time series.
     """
 
     assert isinstance(
@@ -102,7 +102,7 @@ def gpSimRand(
 
     Returns:
         (array(float), array(float), array(float)): Time stamps (default in day), y 
-        values and measurement errors of simulated time series.
+        values and measurement errors of the simulated time series.
     """
     t, y, yerr = gpSimFull(carmaTerm, SNR, duration, full_N, nLC=nLC, log_flux=log_flux)
     t = np.atleast_2d(t)
@@ -154,7 +154,7 @@ def gpSimByTime(carmaTerm, SNR, t, factor=10, nLC=1, log_flux=True):
 
     Returns:
         (array(float), array(float), array(float)): Time stamps (default in day), y 
-        values and measurement errors of simulated time series.   
+        values and measurement errors of the simulated time series.   
     """
     # get number points in full LC based on desired cadence
     duration = ceil(t[-1] - t[0])
