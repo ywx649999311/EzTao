@@ -31,9 +31,8 @@ def gpSimFull(carmaTerm, SNR, duration, N, nLC=1, log_flux=True):
             solved by celerite.
 
     Returns:
-        array(float): Time stamps of simulated time series (the default unit is day).
-        array(float): y values of simulated time series.
-        array(float): Simulated measurement errors, which have been added to y.
+        (array(float), array(float), array(float)): Time stamps (default in day), y 
+        values and measurement errors of simulated time series.
     """
 
     assert isinstance(
@@ -102,9 +101,8 @@ def gpSimRand(
             (before downsampling). Defaults to 10_000.
 
     Returns:
-        array(float): Time stamps of simulated time series (the default unit is day).
-        array(float): y values of simulated time series.
-        array(float): Simulated measurement errors, which have been added to y.
+        (array(float), array(float), array(float)): Time stamps (default in day), y 
+        values and measurement errors of simulated time series.
     """
     t, y, yerr = gpSimFull(carmaTerm, SNR, duration, full_N, nLC=nLC, log_flux=log_flux)
     t = np.atleast_2d(t)
@@ -155,9 +153,8 @@ def gpSimByTime(carmaTerm, SNR, t, factor=10, nLC=1, log_flux=True):
             This argument affects how errors are assigned. Defaults to True.
 
     Returns:
-        array(float): The desired time stamps for the simulated time series.
-        array(float): y values of simulated time series.
-        array(float): Simulated measurement errors, which have been added to y.    
+        (array(float), array(float), array(float)): Time stamps (default in day), y 
+        values and measurement errors of simulated time series.   
     """
     # get number points in full LC based on desired cadence
     duration = ceil(t[-1] - t[0])
@@ -200,9 +197,8 @@ def pred_lc(t, y, yerr, params, p, t_pred, return_var=True):
             prediction. Defaults to True.
 
     Returns:
-        array(float): Same as the input t_pred.
-        array(float): Mean prediction at t_pred.
-        array(float): Uncertainties (variance) in the mean prediction at t_pred.
+        (array(float), array(float), array(float)): t_pred, mean prediction at t_pred 
+        and uncertainties (variance) of the mean prediction.
     """
 
     assert p >= len(params) - p, "The dimension of AR must be greater than that of MA"

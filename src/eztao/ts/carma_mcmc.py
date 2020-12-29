@@ -24,11 +24,9 @@ def mcmc(t, y, yerr, p, q, n_walkers=32, burn_in=500, n_samples=2000, init_param
             Defaults to None.
 
     Returns:
-        array(float): The emcee sampler object.
-        array(float): The MCMC flatchain (n_walkers*n_samplers, dim) in CARMA space if 
-        p > 2, otherwise empty.
-        array(float): The MCMC chain (n_walkers, n_samplers, dim) in CARMA space if 
-        p > 2, otherwise empty.
+        (object, array(float), array(float)): The emcee sampler object. The MCMC 
+        flatchain (n_walkers*n_samplers, dim) and chain (n_walkers, n_samplers, dim) 
+        in CARMA space if p > 2, otherwise empty.
     """
     assert p > q, "p order must be greater than q order."
 
