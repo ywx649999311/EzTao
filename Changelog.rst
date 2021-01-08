@@ -1,6 +1,6 @@
 .. :changelog:
 
-0.3.0rc0 (2020-12-28)
+0.3.0 (2021-01-07)
 +++++++++++++++++++++
 
 - update parameter initialization in fit functions; removed `de` option #26, #27 

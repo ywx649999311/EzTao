@@ -9,5 +9,5 @@ dependencies:
   - emcee
   - pip:
     - corner
-    - eztao==0.3.0rc0
+    - eztao==0.3.0
     - importlib-metadata
