@@ -95,3 +95,21 @@ def test_carma_fcoeffs():
     # test fcoeffs2carma
     params = np.append(*kernel1.fcoeffs2carma(np.log(fcoeffs), 3))
     assert np.allclose(params, np.exp(kernel1.get_parameter_vector()))
+
+
+def test_CARMA_term_coeffs_convert():
+    """Test the static coeff convert functions of CARMA_term."""
+    carma31 = CARMA_term(np.log([3, 2.8, 0.8]), np.log([1, 5]))
+
+    # get log ar, ma params from kernel
+    log_ars = carma31.get_parameter_vector()[:3]
+    log_mas = carma31.get_parameter_vector()[3:]
+
+    # convert to fcoeffs using log ar and log ma
+    fcoeffs = carma31.carma2fcoeffs(log_ars, log_mas)
+    assert fcoeffs.shape[0] == (carma31.p + carma31.q + 1)
+
+    # convert back to ar and ma using foceffs
+    ars, mas = carma31.fcoeffs2carma(np.log(fcoeffs), carma31.p)
+    assert np.allclose(ars, np.exp(log_ars))
+    assert np.allclose(mas, np.exp(log_mas))

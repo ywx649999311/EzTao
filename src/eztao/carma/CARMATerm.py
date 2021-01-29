@@ -49,7 +49,7 @@ def polymul(poly1, poly2):
 def fcoeffs2coeffs(fcoeffs):
     """
     From factored poly coeffs to the coeffs of the product.
-    
+
     :meta private:
     """
     size = fcoeffs.shape[0] - 1
@@ -138,7 +138,7 @@ class DRW_term(terms.Term):
 
     Args:
         log_sigma (float): The natural log of the RMS amplitude of the DRW process.
-        log_tau (float): The natural log of the characteristic timescale of the DRW 
+        log_tau (float): The natural log of the characteristic timescale of the DRW
             process.
     """
 
@@ -147,7 +147,7 @@ class DRW_term(terms.Term):
     def get_real_coefficients(self, params):
         """
         Get ``alpha_real`` and ``beta_real`` (coefficients of celerite's real kernel).
-        
+
         Args:
             params (array(float)): Parameters of this kernel.
 
@@ -160,7 +160,7 @@ class DRW_term(terms.Term):
     def get_perturb_amp(self):
         """
         Get the amplitude of the perturbing noise (beta_0) in DRW.
-        
+
         Returns:
             The amplitude of the perturbing noise (beta_0) in the current DRW.
         """
@@ -174,11 +174,11 @@ class DRW_term(terms.Term):
 
         Args:
             log_sigma (float): The natural log of the RMS amplitude of the DRW process.
-            log_tau (float): The natural log of the characteristic timescale of the DRW 
+            log_tau (float): The natural log of the characteristic timescale of the DRW
                 process.
 
         Returns:
-            The amplitude of the perturbing noise (beta_0) in the DRW specified by the 
+            The amplitude of the perturbing noise (beta_0) in the DRW specified by the
             input parameters.
         """
         return np.exp((2 * log_sigma - np.log(1 / 2) - log_tau) / 2)
@@ -186,7 +186,7 @@ class DRW_term(terms.Term):
     def get_rms_amp(self):
         """
         Get the RMS amplitude of this DRW process.
-        
+
         Returns:
             The RMS amplitude of this DRW process.
         """
@@ -196,7 +196,7 @@ class DRW_term(terms.Term):
     def get_carma_parameter(self):
         """
         Get DRW parameters in CARMA notation (alpha_*/beta_*).
-        
+
         Returns:
             [alpha_1, beta_0].
         """
@@ -272,7 +272,7 @@ class CARMA_term(terms.Term):
         (AR polynomials always have the highest order coeff be 1).
 
         Args:
-            log_fcoeffs (array(float)): The natural log of coefficients for the factored 
+            log_fcoeffs (array(float)): The natural log of coefficients for the factored
                 characteristic polynomial.
 
         """
@@ -286,12 +286,12 @@ class CARMA_term(terms.Term):
 
     def get_real_coefficients(self, params):
         """
-        Get arrays of ``alpha_real`` and ``beta_real`` (coefficients of celerite's 
+        Get arrays of ``alpha_real`` and ``beta_real`` (coefficients of celerite's
         real kernel).
-        
+
         Args:
             params (array(float)): Parameters of this kernel.
-        
+
         Returns:
             Arrays of ``alpha_real`` and ``beta_real``, one for each.
         """
@@ -308,15 +308,15 @@ class CARMA_term(terms.Term):
 
     def get_complex_coefficients(self, params):
         """
-        Get arrays of ``alpha_complex_real``, ``alpha_complex_imag``, 
-        ``beta_complex_real`` and ``beta_complex_imag`` (coefficients of celerite's 
+        Get arrays of ``alpha_complex_real``, ``alpha_complex_imag``,
+        ``beta_complex_real`` and ``beta_complex_imag`` (coefficients of celerite's
         complex kernel).
-        
+
         Args:
             params (array(float)): Parameters of this kernel.
-        
+
         Returns:
-            Arrays of ``alpha_complex_real``, ``alpha_complex_imag``, 
+            Arrays of ``alpha_complex_real``, ``alpha_complex_imag``,
             ``beta_complex_real`` and ``beta_complex_imag``, one for each.
         """
 
@@ -333,7 +333,7 @@ class CARMA_term(terms.Term):
     def get_rms_amp(self):
         """
         Get the RMS amplitude of this CARMA process.
-        
+
         Returns:
             The RMS amplitude of this CARMA process.
         """
@@ -348,7 +348,7 @@ class CARMA_term(terms.Term):
         Args:
             log_arpars (array(float)): The natural log of AR coefficients.
             log_mapars (array(float)): The natural log of MA coefficients.
-        
+
         Returns:
             The RMS amplitude of the CARMA process specified by the input parameters.
         """
@@ -368,7 +368,7 @@ class CARMA_term(terms.Term):
             log_mapars (array(float)): The natural log of MA coefficients.
 
         Returns:
-            array(float): The coefficients of the factored polymoical for the CARMA model 
+            array(float): The coefficients of the factored polymoical for the CARMA model
                 specified by the input parameters.
         """
 
@@ -381,8 +381,8 @@ class CARMA_term(terms.Term):
         ar_coeffs = _roots2coeffs(_arroots)
 
         if _q > 0:
-            ma_coeffs = _roots2coeffs(_arroots)
-            ma_coeffs.append(ma_mult)
+            ma_coeffs = _roots2coeffs(_maroots)
+            ma_coeffs.append(ma_mult[0])
         else:
             ma_coeffs = ma_mult
 
@@ -393,10 +393,10 @@ class CARMA_term(terms.Term):
         """Get the representation of a CARMA model in the nominal CARMA parameter space.
 
         Args:
-            log_coeffs (array(float)): The array of coefficients for the factored 
+            log_coeffs (array(float)): The array of coefficients for the factored
                 polynomial.
             p (int): The p order of the CARMA model.
-        
+
         Returns:
             AR and MA parameters in two separate arrays.
         """

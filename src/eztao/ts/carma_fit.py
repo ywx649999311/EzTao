@@ -30,8 +30,7 @@ def neg_fcoeff_ll(fcoeffs, y, gp):
     return inf as probability.
 
     Args:
-        fcoeffs (array(float)): Coefficients of a CARMA model in the factored polynomial 
-            space.
+        fcoeffs (array(float)): Coefficients (in natural log) of a CARMA model in the factored polynomial space.
         y (array(float)): y values of the input time series.
         gp (object): celerite GP object with a proper CARMA kernel.
 
@@ -100,7 +99,7 @@ def drw_log_param_init(std, size=1, max_tau=6.0):
 
     Args:
         std (float): The standard deviation of the input time series.
-        size (int, optional): The number of the set of DRW parameters to generate. 
+        size (int, optional): The number of the set of DRW parameters to generate.
             Defaults to 1.
         max_tau (float): The maximum likely tau (in natural log). Defaults to 6.0.
 
@@ -124,7 +123,7 @@ def carma_log_param_init(p, q, ranges=None, size=1, a=-8.0, b=8.0, shift=0):
 
     Args:
         dim (int): For a CARMA(p,q) model, dim=p+q+1.
-        ranges (list, optional): Tuples of custom ranges to draw parameter proposals 
+        ranges (list, optional): Tuples of custom ranges to draw parameter proposals
             from. Defaults to None.
         size (int, optional): The number of the set of CARMA parameters to generate.
             Defaults to 1.
@@ -160,13 +159,13 @@ def carma_log_param_init(p, q, ranges=None, size=1, a=-8.0, b=8.0, shift=0):
 
 def carma_log_fcoeff_init(p, q, ranges=None, size=1, a=-8.0, b=8.0, shift=0):
     """
-    Randomly generate CARMA coefficients in the factored polynomial space from [a, b) 
+    Randomly generate CARMA coefficients in the factored polynomial space from [a, b)
     in natural log.
 
     Args:
         p (int): The p order of a CARMA(p, q) model.
         q (int): The q order of a CARMA(p, q) model.
-        ranges (list, optional): Tuples of custom ranges to draw polynomial coefficient 
+        ranges (list, optional): Tuples of custom ranges to draw polynomial coefficient
             proposals from. Defaults to None.
         size (int, optional): The number of the set of coefficients to generate.
             Defaults to 1.
@@ -174,7 +173,7 @@ def carma_log_fcoeff_init(p, q, ranges=None, size=1, a=-8.0, b=8.0, shift=0):
             coefficient is not specified. Defaults to -8.0.
         b (float, optional): The upper bound of the ranges, if the range for a specific
             coefficient is not specified. Defaults to 8.0.
-    
+
     Returns:
         array(float): A ndarray of CAMRA parameters in natural log.
     """
@@ -220,7 +219,7 @@ def sample_carma(p, q, ranges=None, a=-6, b=6, shift=0):
     Args:
         p (int): The p order of a CARMA(p, q) model.
         q (int): The q order of a CARMA(p, q) model.
-        ranges (list): Tuple of custom ranges to draw polynomial coefficients from. 
+        ranges (list): Tuple of custom ranges to draw polynomial coefficients from.
             Defaults to None.
 
     Returns:
@@ -265,7 +264,11 @@ def _min_opt(
 
     for i in range(n_iter):
         r = minimize(
-            neg_ll, initial_params[i], method=method, bounds=bounds, args=(y, gp),
+            neg_ll,
+            initial_params[i],
+            method=method,
+            bounds=bounds,
+            args=(y, gp),
         )
 
         if r.success and (r.fun != -np.inf):
@@ -354,7 +357,7 @@ def dho_fit(t, y, yerr, debug=False, user_bounds=None, init_ranges=None, n_iter=
         debug (bool, optional): Turn on/off debug mode. Defaults to False.
         user_bounds (list, optional): Parameter boundaries for the optimizer.
             Defaults to None.
-        init_ranges (list, optional): Tuples of custom ranges to draw polynomial 
+        init_ranges (list, optional): Tuples of custom ranges to draw polynomial
             coefficient proposals from. Defaults to None.
         n_iter (int, optional): Number of iterations to run the optimizer.
             Defaults to 15.
@@ -404,7 +407,15 @@ def dho_fit(t, y, yerr, debug=False, user_bounds=None, init_ranges=None, n_iter=
 
 
 def carma_fit(
-    t, y, yerr, p, q, debug=False, user_bounds=None, init_ranges=None, n_iter=15,
+    t,
+    y,
+    yerr,
+    p,
+    q,
+    debug=False,
+    user_bounds=None,
+    init_ranges=None,
+    n_iter=15,
 ):
     """
     Fit time series to an arbitrary CARMA model.
@@ -468,6 +479,15 @@ def carma_fit(
         )
         bounds[p:] += shift
 
-    best_fit_return = _min_opt(y, best_fit, gp, init_func, mode, debug, bounds, n_iter,)
+    best_fit_return = _min_opt(
+        y,
+        best_fit,
+        gp,
+        init_func,
+        mode,
+        debug,
+        bounds,
+        n_iter,
+    )
 
     return best_fit_return
