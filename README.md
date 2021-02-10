@@ -8,6 +8,10 @@
 ```
 pip install eztao
 ```
+or (from master)
+```
+pip install git+https://github.com/ywx649999311/EzTao.git
+```
 ### Dependencies
 >```
 >python = "^3.7"
