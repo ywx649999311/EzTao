@@ -30,7 +30,8 @@ def neg_fcoeff_ll(fcoeffs, y, gp):
     return inf as probability.
 
     Args:
-        fcoeffs (array(float)): Coefficients (in natural log) of a CARMA model in the factored polynomial space.
+        fcoeffs (array(float)): Coefficients (in natural log) of a CARMA model in 
+            the factored polynomial space.
         y (array(float)): y values of the input time series.
         gp (object): celerite GP object with a proper CARMA kernel.
 
@@ -219,8 +220,8 @@ def sample_carma(p, q, ranges=None, a=-6, b=6, shift=0):
     Args:
         p (int): The p order of a CARMA(p, q) model.
         q (int): The q order of a CARMA(p, q) model.
-        ranges (list): Tuple of custom ranges to draw polynomial coefficients from.
-            Defaults to None.
+        ranges (list): Tuple of custom ranges to draw polynomial coefficients 
+            from. Defaults to None.
 
     Returns:
         AR and MA coefficients in two separate arrays.
@@ -296,7 +297,7 @@ def _min_opt(
 
 def drw_fit(t, y, yerr, debug=False, user_bounds=None, n_iter=10):
     """
-    Fit time series to DRW.
+    Fit DRW.
 
     Args:
         t (array(float)): Time stamps of the input time series (the default unit is day).
@@ -348,7 +349,7 @@ def drw_fit(t, y, yerr, debug=False, user_bounds=None, n_iter=10):
 
 def dho_fit(t, y, yerr, debug=False, user_bounds=None, init_ranges=None, n_iter=15):
     """
-    Fit time series to DHO/CARMA(2,1).
+    Fit DHO/CARMA(2,1).
 
     Args:
         t (array(float)): Time stamps of the input time series (the default unit is day).
@@ -418,7 +419,7 @@ def carma_fit(
     n_iter=15,
 ):
     """
-    Fit time series to an arbitrary CARMA model.
+    Fit an arbitrary CARMA model.
 
     Args:
         t (array(float)): Time stamps of the input time series (the default unit is day).
