@@ -80,10 +80,10 @@ For more examples, please check out the [online documentation](https://eztao.rea
 `poetry` is used to solve dependencies and to build/publish this package. Below shows how setup the environment for development (assuming you already have `poetry` installed on your machine). 
 
 1. Clone this repository, and enter the repository folder.
-2. Create a python virtual environment and activate it. 
+2. Create a python virtual environment and activate it (the virtual environment name must be '.venv'). 
     ```
-    python -m venv env
-    source env/bin/activate
+    python -m venv .venv
+    source .venv/bin/activate
     ```
 3. Install dependencies and **EzTao** in editable mode.
    ```
