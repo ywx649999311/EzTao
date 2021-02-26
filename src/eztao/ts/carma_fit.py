@@ -8,6 +8,7 @@ from scipy.optimize import minimize
 import celerite
 from celerite import GP
 from eztao.carma.CARMATerm import DRW_term, DHO_term, CARMA_term, fcoeffs2coeffs
+from functools import partial
 
 __all__ = [
     "drw_fit",
@@ -30,7 +31,7 @@ def neg_fcoeff_ll(fcoeffs, y, gp):
     return inf as probability.
 
     Args:
-        fcoeffs (array(float)): Coefficients (in natural log) of a CARMA model in 
+        fcoeffs (array(float)): Coefficients (in natural log) of a CARMA model in
             the factored polynomial space.
         y (array(float)): y values of the input time series.
         gp (object): celerite GP object with a proper CARMA kernel.
@@ -94,6 +95,32 @@ def neg_param_ll(params, y, gp):
     return neg_ll
 
 
+def flat_prior(params, bounds):
+
+    dim = len(params)
+    assert bounds.shape == (dim, 2), "Dimension mismatch for the boundaries!"
+
+    bounds_idx = [i for i in range(dim) if all(bounds[i])]
+    in_bounds = np.array(
+        [(bounds[i, 0] <= params[i] <= bounds[i, 1]) for i in bounds_idx]
+    )
+
+    if all(in_bounds):
+        return 0
+    else:
+        return -np.inf
+
+
+def neg_lp_flat(params, y, gp, bounds=None, mode="fcoeff"):
+
+    if mode == "param":
+        neg_ll = neg_param_ll
+    else:
+        neg_ll = neg_fcoeff_ll
+
+    return -flat_prior(params, bounds) + neg_ll(params, y, gp)
+
+
 def drw_log_param_init(std, size=1, max_tau=6.0):
     """
     Randomly generate DRW parameters.
@@ -143,7 +170,7 @@ def carma_log_param_init(p, q, ranges=None, size=1, a=-8.0, b=8.0, shift=0):
         for d in range(dim):
             if all(ranges[d]):
                 scale = ranges[d][1] - ranges[d][0]
-                log_param[:, d] = log_param[:, d] * scale - ranges[d][0]
+                log_param[:, d] = log_param[:, d] * scale + ranges[d][0]
             else:
                 log_param[:, d] = log_param[:, d] * (b - a) + a
     else:
@@ -185,7 +212,7 @@ def carma_log_fcoeff_init(p, q, ranges=None, size=1, a=-8.0, b=8.0, shift=0):
         for d in range(dim):
             if all(ranges[d]):
                 scale = ranges[d][1] - ranges[d][0]
-                log_coeff[:, d] = log_coeff[:, d] * scale - ranges[d][0]
+                log_coeff[:, d] = log_coeff[:, d] * scale + ranges[d][0]
             else:
                 log_coeff[:, d] = log_coeff[:, d] * (b - a) + a
     else:
@@ -220,7 +247,7 @@ def sample_carma(p, q, ranges=None, a=-6, b=6, shift=0):
     Args:
         p (int): The p order of a CARMA(p, q) model.
         q (int): The q order of a CARMA(p, q) model.
-        ranges (list): Tuple of custom ranges to draw polynomial coefficients 
+        ranges (list): Tuple of custom ranges to draw polynomial coefficients
             from. Defaults to None.
 
     Returns:
@@ -235,64 +262,109 @@ def sample_carma(p, q, ranges=None, a=-6, b=6, shift=0):
     return ARpars, MApars
 
 
-def _min_opt(
-    y, best_fit, gp, init_func, mode, debug, bounds, n_iter, method="L-BFGS-B"
+def scipy_opt(
+    y,
+    gp,
+    init_func,
+    neg_lp_func,
+    n_iter,
+    mode="fcoeff",
+    debug=False,
+    opt_kwargs={},
+    opt_options={},
 ):
-    """A wrapper for scipy.optimize.minimize.
 
-    Args:
-        y (array(float)): An array of y values.
-        best_fit (array(float)): An empty array to store best fit parameters.
-        gp (object): celerite GP model object.
-        init_func (object): CARMA parameter/coefficient initialization function,
-            i.e. drw_log_param_init.
-        mode (str): Specify which space to sample, 'param' or 'coeff'.
-        debug (bool): Turn on/off debug mode.
-        bounds (list): CARMA parameter/coefficient boundaries for the optimizer.
-        n_iter (int): Number of iterations to run the optimizer. Defaults to 10.
-        method (str, optional): scipy.optimize.minimize method. Defaults to "L-BFGS-B".
+    initial_params = init_func(size=n_iter)
+    dim = gp.kernel.p + gp.kernel.q + 1
 
-    Returns:
-        array(float): Best-fit CARMA parameters.
-    """
-
-    # set the neg_ll function based on mode
-    neg_ll = neg_fcoeff_ll if mode == "coeff" else neg_param_ll
-
-    # placeholder for ll and sols; draw init params
-    ll, sols, rs = [], [], []
-    initial_params = init_func()
-
+    rs = []
     for i in range(n_iter):
         r = minimize(
-            neg_ll,
+            neg_lp_func,
             initial_params[i],
-            method=method,
-            bounds=bounds,
             args=(y, gp),
+            **opt_kwargs,
+            options=opt_options,
         )
 
-        if r.success and (r.fun != -np.inf):
-            if mode == "param":
-                gp.kernel.set_parameter_vector(r.x)
-            else:
-                gp.kernel.set_log_fcoeffs(r.x)
-
-            ll.append(-r.fun)
-            sols.append(np.exp(gp.get_parameter_vector()))
-        else:
-            ll.append(-np.inf)
-            sols.append([np.nan] * len(best_fit))
-
-        # save all r for debugging
         rs.append(r)
 
-    best_fit = sols[np.argmax(ll)]
-
     if debug:
-        print(rs)
+        return rs
+    else:
+        good_rs = [r for r in rs if r.success and r.fun != -np.inf]
 
-    return best_fit
+        if len(good_rs) == 0:
+            return [np.nan] * dim
+        else:
+            lls = [-r.fun for r in good_rs]
+            log_sols = [r.x for r in good_rs]
+            best_sol = log_sols[np.argmax(lls)]
+
+            if mode == "fcoeff":
+                return np.concatenate(CARMA_term.fcoeffs2carma(best_sol, gp.kernel.p))
+            else:
+                return np.exp(best_sol)
+
+
+# def _min_opt(
+#     y, best_fit, gp, init_func, mode, debug, bounds, n_iter, method="L-BFGS-B"
+# ):
+#     """A wrapper for scipy.optimize.minimize.
+
+#     Args:
+#         y (array(float)): An array of y values.
+#         best_fit (array(float)): An empty array to store best fit parameters.
+#         gp (object): celerite GP model object.
+#         init_func (object): CARMA parameter/coefficient initialization function,
+#             i.e. drw_log_param_init.
+#         mode (str): Specify which space to sample, 'param' or 'coeff'.
+#         debug (bool): Turn on/off debug mode.
+#         bounds (list): CARMA parameter/coefficient boundaries for the optimizer.
+#         n_iter (int): Number of iterations to run the optimizer. Defaults to 10.
+#         method (str, optional): scipy.optimize.minimize method. Defaults to "L-BFGS-B".
+
+#     Returns:
+#         array(float): Best-fit CARMA parameters.
+#     """
+
+#     # set the neg_ll function based on mode
+#     neg_ll = neg_fcoeff_ll if mode == "coeff" else neg_param_ll
+
+#     # placeholder for ll and sols; draw init params
+#     ll, sols, rs = [], [], []
+#     initial_params = init_func()
+
+#     for i in range(n_iter):
+#         r = minimize(
+#             neg_ll,
+#             initial_params[i],
+#             method=method,
+#             bounds=bounds,
+#             args=(y, gp),
+#         )
+
+#         if r.success and (r.fun != -np.inf):
+#             if mode == "param":
+#                 gp.kernel.set_parameter_vector(r.x)
+#             else:
+#                 gp.kernel.set_log_fcoeffs(r.x)
+
+#             ll.append(-r.fun)
+#             sols.append(np.exp(gp.get_parameter_vector()))
+#         else:
+#             ll.append(-np.inf)
+#             sols.append([np.nan] * len(best_fit))
+
+#         # save all r for debugging
+#         rs.append(r)
+
+#     best_fit = sols[np.argmax(ll)]
+
+#     if debug:
+#         print(rs)
+
+#     return best_fit
 
 
 def drw_fit(t, y, yerr, debug=False, user_bounds=None, n_iter=10):
@@ -347,30 +419,18 @@ def drw_fit(t, y, yerr, debug=False, user_bounds=None, n_iter=10):
     return best_fit_return
 
 
-def dho_fit(t, y, yerr, debug=False, user_bounds=None, init_ranges=None, n_iter=15):
-    """
-    Fit DHO/CARMA(2,1).
+def dho_fit(
+    t,
+    y,
+    yerr,
+    init_func=None,
+    neg_lp_func=None,
+    optimizer_func=None,
+    n_iter=20,
+    user_bounds=None,
+):
 
-    Args:
-        t (array(float)): Time stamps of the input time series (the default unit is day).
-        y (array(float)): y values of the input time series.
-        yerr (array(float)): Measurement errors for y values.
-        debug (bool, optional): Turn on/off debug mode. Defaults to False.
-        user_bounds (list, optional): Parameter boundaries for the optimizer.
-            Defaults to None.
-        init_ranges (list, optional): Tuples of custom ranges to draw polynomial
-            coefficient proposals from. Defaults to None.
-        n_iter (int, optional): Number of iterations to run the optimizer.
-            Defaults to 15.
-
-    Raises:
-        celerite.solver.LinAlgError: For non-positive definite autocovariance matrices.
-
-    Returns:
-        array(float): Best-fit parameters
-    """
-    best_fit = np.zeros(4)
-
+    # determine user defined boundaries if any
     if user_bounds is not None and (len(user_bounds) == 4):
         bounds = user_bounds
     else:
@@ -380,27 +440,41 @@ def dho_fit(t, y, yerr, debug=False, user_bounds=None, init_ranges=None, n_iter=
     t = t - t[0]
     y = y - np.median(y)
 
-    # determine shift due amp too large/small
+    # determine shift due to amplitude being too large/small
     shift = np.array(0)
-    if np.std(y) < 1e-4 or np.std(y) > 1e4:
+    if np.std(y) < 1e-3 or np.std(y) > 1e3:
         shift = np.log(np.std(y))
         bounds[2:] += shift
+
+    # determine negative log probability function
+    if neg_lp_func is None:
+        neg_lp = partial(neg_lp_flat, bounds=np.array(bounds), mode="param")
+    else:
+        neg_lp = neg_lp_func
 
     # initialize parameter, kernel and GP
     kernel = DHO_term(*carma_log_param_init(2, 1, shift=float(shift)))
     gp = GP(kernel, mean=0)
     gp.compute(t, yerr)
 
-    best_fit_return = _min_opt(
+    # determine initialize function
+    if init_func is None:
+        init = partial(carma_log_param_init, 2, 1, shift=float(shift))
+    else:
+        init = init_func
+
+    # determine optimizer function
+    if optimizer_func is None:
+        opt_kwargs = {"method": "L-BFGS-B", "bounds": bounds}
+        opt = partial(scipy_opt, opt_kwargs=opt_kwargs, mode="param")
+    else:
+        opt = optimizer_func
+
+    best_fit_return = opt(
         y,
-        best_fit,
         gp,
-        lambda: carma_log_param_init(
-            2, 1, ranges=init_ranges, size=n_iter, shift=float(shift)
-        ),
-        "param",
-        debug,
-        bounds,
+        init,
+        neg_lp,
         n_iter,
     )
 
@@ -413,10 +487,12 @@ def carma_fit(
     yerr,
     p,
     q,
+    init_func=None,
+    neg_lp_func=None,
+    optimizer_func=None,
     debug=False,
     user_bounds=None,
-    init_ranges=None,
-    n_iter=15,
+    n_iter=20,
 ):
     """
     Fit an arbitrary CARMA model.
@@ -443,8 +519,9 @@ def carma_fit(
     Returns:
         array(float): Best-fit parameters
     """
+    # set core config
     dim = int(p + q + 1)
-    best_fit = np.empty(dim)
+    mode = "fcoeff" if p > 2 else "param"
 
     # init bounds for fitting
     if user_bounds is not None and (len(user_bounds) == dim):
@@ -456,7 +533,7 @@ def carma_fit(
     t = t - t[0]
     y = y - np.median(y)
 
-    # determine shift due amp too large/small
+    # determine/set shift due amp too large/small
     shift = np.array(0)
     if np.std(y) < 1e-4 or np.std(y) > 1e4:
         shift = np.log(np.std(y))
@@ -467,27 +544,34 @@ def carma_fit(
     gp = GP(kernel, mean=0)
     gp.compute(t, yerr)
 
-    if p > 2:
-        mode = "coeff"
-        init_func = lambda: carma_log_fcoeff_init(
-            p, q, ranges=init_ranges, size=n_iter, shift=float(shift)
-        )
+    # determine/set init func
+    if init_func is not None:
+        init = init_func
+    elif mode == "fcoeff":
+        init = partial(carma_log_fcoeff_init, p, q, shift=float(shift))
         bounds[-1] += shift
     else:
-        mode = "param"
-        init_func = lambda: carma_log_param_init(
-            p, q, ranges=init_ranges, size=n_iter, shift=float(shift)
-        )
+        init = partial(carma_log_param_init, p, q, shift=float(shift))
         bounds[p:] += shift
 
-    best_fit_return = _min_opt(
+    # determine/set negative log probability function
+    if neg_lp_func is None:
+        neg_lp = partial(neg_lp_flat, bounds=np.array(bounds), mode=mode)
+    else:
+        neg_lp = neg_lp_func
+
+    # determine/set optimizer function
+    if optimizer_func is None:
+        opt_kwargs = {"method": "L-BFGS-B", "bounds": bounds}
+        opt = partial(scipy_opt, opt_kwargs=opt_kwargs, mode=mode)
+    else:
+        opt = optimizer_func
+
+    best_fit_return = opt(
         y,
-        best_fit,
         gp,
-        init_func,
-        mode,
-        debug,
-        bounds,
+        init,
+        neg_lp,
         n_iter,
     )
 
