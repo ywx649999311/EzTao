@@ -281,7 +281,7 @@ class CARMA_term(terms.Term):
 
         fcoeffs = _compute_exp(log_fcoeffs)
         ARpars = fcoeffs2coeffs(np.append(fcoeffs[: self._p], [1]))[1:]
-        MApars = fcoeffs2coeffs(fcoeffs[self._p :])
+        MApars = fcoeffs2coeffs(fcoeffs[self._p :])[::-1]
         self.set_parameter_vector(np.log(np.append(ARpars, MApars)))
 
     def get_real_coefficients(self, params):
