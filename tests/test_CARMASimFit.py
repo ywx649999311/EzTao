@@ -101,7 +101,7 @@ def test_pred_lc():
 def test_drwFit():
 
     for kernel in [drw1, drw2, drw3]:
-        t, y, yerr = gpSimRand(kernel, 50, 365 * 10.0, 500, nLC=100, season=False)
+        t, y, yerr = gpSimRand(kernel, 50, 365 * 10.0, 200, nLC=200, season=False)
         best_fit_drw = np.array(
             Parallel(n_jobs=-1)(
                 delayed(drw_fit)(t[i], y[i], yerr[i]) for i in range(len(t))
