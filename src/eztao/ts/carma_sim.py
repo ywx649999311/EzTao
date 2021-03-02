@@ -18,12 +18,12 @@ def gpSimFull(carmaTerm, SNR, duration, N, nLC=1, log_flux=True):
 
     Args:
         carmaTerm (object): An EzTao CARMA kernel.
-        SNR (float): Signal-to-noise defined as ratio between CARMA RMS amplitude and 
+        SNR (float): Signal-to-noise defined as ratio between CARMA RMS amplitude and
             the median of the measurement errors (simulated using log normal).
         duration (float): The duration of the simulated time series (default in days).
         N (int): The number of data points in the simulated time series.
         nLC (int, optional): Number of time series to simulate. Defaults to 1.
-        log_flux (bool): Whether the flux/y values are in log scale, i.e., magnitude. 
+        log_flux (bool): Whether the flux/y values are in log scale, i.e., magnitude.
             This argument affects how errors are assigned. Defaults to True.
 
     Raises:
@@ -31,7 +31,7 @@ def gpSimFull(carmaTerm, SNR, duration, N, nLC=1, log_flux=True):
             solved by celerite.
 
     Returns:
-        (array(float), array(float), array(float)): Time stamps (default in day), y 
+        (array(float), array(float), array(float)): Time stamps (default in day), y
         values and measurement errors of the simulated time series.
     """
 
@@ -88,20 +88,20 @@ def gpSimRand(
 
     Args:
         carmaTerm (object): An EzTao CARMA kernel.
-        SNR (float): Signal-to-noise defined as ratio between CARMA RMS amplitude and 
+        SNR (float): Signal-to-noise defined as ratio between CARMA RMS amplitude and
             the median of the measurement errors (simulated using log normal).
         duration (float): The duration of the simulated time series (default in days).
         N (int): The number of data points in the simulated time series.
         nLC (int, optional): Number of time series to simulate. Defaults to 1.
-        log_flux (bool): Whether the flux/y values are in log scale, i.e., magnitude. 
+        log_flux (bool): Whether the flux/y values are in log scale, i.e., magnitude.
             This argument affects how errors are assigned. Defaults to True.
-        season (bool, optional): Whether to simulate 6-months seasonal gaps. Defaults 
+        season (bool, optional): Whether to simulate 6-months seasonal gaps. Defaults
             to True.
-        full_N (int, optional): The number of data points in the full time series 
+        full_N (int, optional): The number of data points in the full time series
             (before downsampling). Defaults to 10_000.
 
     Returns:
-        (array(float), array(float), array(float)): Time stamps (default in day), y 
+        (array(float), array(float), array(float)): Time stamps (default in day), y
         values and measurement errors of the simulated time series.
     """
     t, y, yerr = gpSimFull(carmaTerm, SNR, duration, full_N, nLC=nLC, log_flux=log_flux)
@@ -119,7 +119,7 @@ def gpSimRand(
         if season:
             mask1 = add_season(t[i])
         else:
-            mask1 = np.ones(t[i].shape[0], dtype=np.bool)
+            mask1 = np.ones(t[i].shape[0], dtype=bool)
         mask2 = downsample_byN(t[i, mask1], N)
         tOut[i, :] = t[i, mask1][mask2]
         yOut[i, :] = y[i, mask1][mask2]
@@ -135,26 +135,26 @@ def gpSimByTime(carmaTerm, SNR, t, factor=10, nLC=1, log_flux=True):
     """
     Simulate CARMA time series at desired time stamps.
 
-    This function uses a 'factor' parameter to determine the sampling rate of a full 
-    time series to simulate and downsample from. For example, if 'factor' = 10, then 
-    the full time series will be 10 times denser than the median sampling rate of the 
+    This function uses a 'factor' parameter to determine the sampling rate of a full
+    time series to simulate and downsample from. For example, if 'factor' = 10, then
+    the full time series will be 10 times denser than the median sampling rate of the
     provided time stamps.
 
     Args:
         carmaTerm (object): An EzTao CARMA kernel.
-        SNR (float): Signal-to-noise defined as ratio between CARMA RMS amplitude and 
+        SNR (float): Signal-to-noise defined as ratio between CARMA RMS amplitude and
             the median of the measurement errors (simulated using log normal).
         t (array(float)): The desired time stamps.
         factor (int, optional): Parameter to control the ratio in the sampling
             rate between the simulated full time series and the desired output one.
             Defaults to 10.
         nLC (int, optional): Number of time series to simulate. Defaults to 1.
-        log_flux (bool): Whether the flux/y values are in log scale, i.e., magnitude. 
+        log_flux (bool): Whether the flux/y values are in log scale, i.e., magnitude.
             This argument affects how errors are assigned. Defaults to True.
 
     Returns:
-        (array(float), array(float), array(float)): Time stamps (default in day), y 
-        values and measurement errors of the simulated time series.   
+        (array(float), array(float), array(float)): Time stamps (default in day), y
+        values and measurement errors of the simulated time series.
     """
     # get number points in full LC based on desired cadence
     duration = ceil(t[-1] - t[0])
@@ -197,7 +197,7 @@ def pred_lc(t, y, yerr, params, p, t_pred, return_var=True):
             prediction. Defaults to True.
 
     Returns:
-        (array(float), array(float), array(float)): t_pred, mean prediction at t_pred 
+        (array(float), array(float), array(float)): t_pred, mean prediction at t_pred
         and uncertainties (variance) of the mean prediction.
     """
 

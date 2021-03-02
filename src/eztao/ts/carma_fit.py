@@ -14,12 +14,15 @@ __all__ = [
     "drw_fit",
     "dho_fit",
     "carma_fit",
+    "flat_prior",
     "neg_fcoeff_ll",
     "neg_param_ll",
+    "neg_lp_flat",
     "drw_log_param_init",
     "carma_log_param_init",
     "carma_log_fcoeff_init",
     "sample_carma",
+    "scipy_opt",
 ]
 
 
@@ -96,6 +99,17 @@ def neg_param_ll(params, y, gp):
 
 
 def flat_prior(params, bounds):
+    """
+    A flat prior function. Returns 0 if "params" are within the given "bounds",
+    negative infiinity otherwise.
+
+    Args:
+        params (array(float)): CARMA parameters in natural log.
+        bounds (array((float, float)): An array of boundaries.
+
+    Returns:
+        float: 0 or negative infinity.
+    """
 
     dim = len(params)
     assert bounds.shape == (dim, 2), "Dimension mismatch for the boundaries!"
@@ -112,6 +126,20 @@ def flat_prior(params, bounds):
 
 
 def neg_lp_flat(params, y, gp, bounds=None, mode="fcoeff"):
+    """
+    Negative log probability function using a flat prior.
+
+    Args:
+        params (array(float)): CARMA parameters in natural log.
+        y (array(float)): y values of the input time series.
+        gp (object): celerite GP object with a proper CARMA kernel.
+        bounds (array((float, float)): An array of boundaries. Defaults to None.
+        mode (str, optional): The parameter space in which proposals are made. The mode
+            determines which loglikehood function to use. Defaults to "fcoeff".
+
+    Returns:
+        float: Log probability of the proposed parameters.
+    """
 
     if mode == "param":
         neg_ll = neg_param_ll
@@ -121,22 +149,26 @@ def neg_lp_flat(params, y, gp, bounds=None, mode="fcoeff"):
     return -flat_prior(params, bounds) + neg_ll(params, y, gp)
 
 
-def drw_log_param_init(std, size=1, max_tau=6.0):
+def drw_log_param_init(amp_range, log_tau_range, size=1):
     """
     Randomly generate DRW parameters.
 
     Args:
-        std (float): The standard deviation of the input time series.
+        amp_range (object): An array containing the range of DRW amplitude to simulate.
+        log_tau_range (object): An array containing the range of DRW timescale
+            (in natural log) to simulate.
         size (int, optional): The number of the set of DRW parameters to generate.
             Defaults to 1.
-        max_tau (float): The maximum likely tau (in natural log). Defaults to 6.0.
 
     Returns:
         array(float): A ndarray of DRW parameters in natural log.
     """
 
-    init_tau = np.exp(np.random.rand(size, 1) * max_tau)
-    init_amp = np.random.rand(size, 1) * 4 * std
+    init_tau = np.exp(
+        np.random.rand(size, 1) * (log_tau_range[1] - log_tau_range[0])
+        + log_tau_range[0]
+    )
+    init_amp = np.random.rand(size, 1) * (amp_range[1] - amp_range[0]) + amp_range[0]
     drw_param = np.hstack((init_amp, init_tau))
 
     if size == 1:
@@ -273,6 +305,30 @@ def scipy_opt(
     opt_kwargs={},
     opt_options={},
 ):
+    """
+    A wrapper for scipy.optimize.minimze method.
+
+    Args:
+        y (array(float)): y values of the input time series.
+        gp (object): celerite GP object with a proper CARMA kernel.
+        init_func (object): A user-provided function to generate initial
+            guesses for the optimizer. Defaults to None.
+        neg_lp_func (object): A user-provided function to compute negative
+            probability given an array of parameters, an array of time series values and
+            a celerite GP instance. Defaults to None.
+        n_iter (int): Number of iterations to run the optimizer.
+        mode (str, optional): The parameter space in which to make proposals, this
+            should be determined in the "_fit" functions based on the value of the p
+            order. Defaults to "fcoeff".
+        debug (bool, optional): Turn on/off debug mode. Defaults to False.
+        opt_kwargs (dict, optional): Keyword arguments for scipy.optimize.minimze.
+            Defaults to {}.
+        opt_options (dict, optional): "options" argument for scipy.optimize.minimze.
+            Defaults to {}.
+
+    Returns:
+        Best-fit parameters if "debug" is False, an array of scipy.optimize.OptimizeResult objects otherwise.
+    """
 
     initial_params = init_func(size=n_iter)
     dim = gp.kernel.p + gp.kernel.q + 1
@@ -307,67 +363,19 @@ def scipy_opt(
                 return np.exp(best_sol)
 
 
-# def _min_opt(
-#     y, best_fit, gp, init_func, mode, debug, bounds, n_iter, method="L-BFGS-B"
-# ):
-#     """A wrapper for scipy.optimize.minimize.
-
-#     Args:
-#         y (array(float)): An array of y values.
-#         best_fit (array(float)): An empty array to store best fit parameters.
-#         gp (object): celerite GP model object.
-#         init_func (object): CARMA parameter/coefficient initialization function,
-#             i.e. drw_log_param_init.
-#         mode (str): Specify which space to sample, 'param' or 'coeff'.
-#         debug (bool): Turn on/off debug mode.
-#         bounds (list): CARMA parameter/coefficient boundaries for the optimizer.
-#         n_iter (int): Number of iterations to run the optimizer. Defaults to 10.
-#         method (str, optional): scipy.optimize.minimize method. Defaults to "L-BFGS-B".
-
-#     Returns:
-#         array(float): Best-fit CARMA parameters.
-#     """
-
-#     # set the neg_ll function based on mode
-#     neg_ll = neg_fcoeff_ll if mode == "coeff" else neg_param_ll
-
-#     # placeholder for ll and sols; draw init params
-#     ll, sols, rs = [], [], []
-#     initial_params = init_func()
-
-#     for i in range(n_iter):
-#         r = minimize(
-#             neg_ll,
-#             initial_params[i],
-#             method=method,
-#             bounds=bounds,
-#             args=(y, gp),
-#         )
-
-#         if r.success and (r.fun != -np.inf):
-#             if mode == "param":
-#                 gp.kernel.set_parameter_vector(r.x)
-#             else:
-#                 gp.kernel.set_log_fcoeffs(r.x)
-
-#             ll.append(-r.fun)
-#             sols.append(np.exp(gp.get_parameter_vector()))
-#         else:
-#             ll.append(-np.inf)
-#             sols.append([np.nan] * len(best_fit))
-
-#         # save all r for debugging
-#         rs.append(r)
-
-#     best_fit = sols[np.argmax(ll)]
-
-#     if debug:
-#         print(rs)
-
-#     return best_fit
-
-
-def drw_fit(t, y, yerr, debug=False, user_bounds=None, n_iter=10):
+def drw_fit(
+    t,
+    y,
+    yerr,
+    init_func=None,
+    neg_lp_func=None,
+    optimizer_func=None,
+    n_iter=10,
+    user_bounds=None,
+    scipy_opt_kwargs={},
+    scipy_opt_options={},
+    debug=False,
+):
     """
     Fit DRW.
 
@@ -375,47 +383,81 @@ def drw_fit(t, y, yerr, debug=False, user_bounds=None, n_iter=10):
         t (array(float)): Time stamps of the input time series (the default unit is day).
         y (array(float)): y values of the input time series.
         yerr (array(float)): Measurement errors for y values.
-        debug (bool, optional): Turn on/off debug mode. Defaults to False.
-        user_bounds (list, optional): Parameter boundaries for the optimizer.
+        init_func (object, optional): A user-provided function to generate initial
+            guesses for the optimizer. Defaults to None.
+        neg_lp_func (object, optional): A user-provided function to compute negative
+            probability given an array of parameters, an array of time series values and
+            a celerite GP instance. Defaults to None.
+        optimizer_func (object, optional): A user-provided optimizer function.
             Defaults to None.
         n_iter (int, optional): Number of iterations to run the optimizer. Defaults to 10.
-
-    Raises:
-        celerite.solver.LinAlgError: For non-positive definite autocovariance matrices.
+        user_bounds (list, optional): Parameter boundaries for the default optimizer.
+            Defaults to None.
+        scipy_opt_kwargs (dict, optional): Keyword arguments for scipy.optimize.minimze.
+            Defaults to {}.
+        scipy_opt_options (dict, optional): "options" argument for scipy.optimize.minimze.
+            Defaults to {}.
+        debug (bool, optional): Turn on/off debug mode. Defaults to False.
 
     Returns:
-        array(float): Best-fit parameters
+        array(float): Best-fit DRW parameters
     """
-
-    best_fit = np.empty(2)
+    # re-position lc; compute some stat
+    t = t - t[0]
+    y = y - np.median(y)
     std = np.std(y)
+    min_dt = np.min(t[1:] - t[:-1])
 
     # init bounds for fitting
     if user_bounds is not None and (len(user_bounds) == 2):
         bounds = user_bounds
     else:
-        bounds = [(-4, np.log(4 * std)), (-4, 10)]
+        bounds = [
+            (np.log(std / 50), np.log(3 * std)),
+            (np.log(min_dt / 5), np.log(t[-1])),
+        ]
 
-    # re-position lc
-    t = t - t[0]
-    y = y - np.median(y)
+    # determine negative log probability function
+    if neg_lp_func is None:
+        neg_lp = partial(neg_lp_flat, bounds=np.array(bounds), mode="param")
+    else:
+        neg_lp = neg_lp_func
+
+    # define ranges to generate initial guesses
+    amp_range = [std / 50, 3 * std]
+    log_tau_range = [np.log(min_dt / 5), np.log(t[-1] / 10)]
 
     # initialize parameter and kernel
-    kernel = DRW_term(*drw_log_param_init(std, max_tau=np.log(t[-1] / 8)))
+    kernel = DRW_term(*drw_log_param_init(amp_range, log_tau_range))
     gp = GP(kernel, mean=0)
     gp.compute(t, yerr)
 
-    best_fit_return = _min_opt(
+    # determine initialize function
+    if init_func is None:
+        init = partial(drw_log_param_init, amp_range, log_tau_range)
+    else:
+        init = init_func
+
+    # determine optimizer function
+    if optimizer_func is None:
+        scipy_opt_kwargs.update({"method": "L-BFGS-B", "bounds": bounds})
+        opt = partial(
+            scipy_opt,
+            mode="param",
+            opt_kwargs=scipy_opt_kwargs,
+            opt_options=scipy_opt_options,
+            debug=debug,
+        )
+    else:
+        opt = optimizer_func
+
+    best_fit_return = opt(
         y,
-        best_fit,
         gp,
-        lambda: drw_log_param_init(std, size=n_iter, max_tau=np.log(t[-1] / 8)),
-        "param",
-        debug,
-        bounds,
+        init,
+        neg_lp,
         n_iter,
     )
-
     return best_fit_return
 
 
@@ -428,7 +470,38 @@ def dho_fit(
     optimizer_func=None,
     n_iter=20,
     user_bounds=None,
+    scipy_opt_kwargs={},
+    scipy_opt_options={},
+    debug=False,
 ):
+    """
+    Fit DHO to time series.
+
+    Args:
+        t (array(float)): Time stamps of the input time series (the default unit is day).
+        y (array(float)): y values of the input time series.
+        yerr (array(float)): Measurement errors for y values.
+        init_func (object, optional): A user-provided function to generate initial
+            guesses for the optimizer. Defaults to None.
+        neg_lp_func (object, optional): A user-provided function to compute negative
+            probability given an array of parameters, an array of time series values and
+            a celerite GP instance. Defaults to None.
+        optimizer_func (object, optional): A user-provided optimizer function.
+            Defaults to None.
+        n_iter (int, optional): The number of optimizers to initialize. Defaults to 20.
+        user_bounds (list, optional): Parameter boundaries for the default optimizer.
+            Defaults to None.
+        scipy_opt_kwargs (dict, optional): Keyword arguments for scipy.optimize.minimze.
+            Defaults to {}.
+        scipy_opt_options (dict, optional): "options" argument for scipy.optimize.minimze.
+            Defaults to {}.
+        debug (bool, optional): Turn on/off debug mode. Defaults to False.
+    Raises:
+        celerite.solver.LinAlgError: For non-positive definite autocovariance matrices.
+
+    Returns:
+        array(float): Best-fit DHO parameters
+    """
 
     # determine user defined boundaries if any
     if user_bounds is not None and (len(user_bounds) == 4):
@@ -465,8 +538,14 @@ def dho_fit(
 
     # determine optimizer function
     if optimizer_func is None:
-        opt_kwargs = {"method": "L-BFGS-B", "bounds": bounds}
-        opt = partial(scipy_opt, opt_kwargs=opt_kwargs, mode="param")
+        scipy_opt_kwargs.update({"method": "L-BFGS-B", "bounds": bounds})
+        opt = partial(
+            scipy_opt,
+            mode="param",
+            opt_kwargs=scipy_opt_kwargs,
+            opt_options=scipy_opt_options,
+            debug=debug,
+        )
     else:
         opt = optimizer_func
 
@@ -490,9 +569,11 @@ def carma_fit(
     init_func=None,
     neg_lp_func=None,
     optimizer_func=None,
-    debug=False,
-    user_bounds=None,
     n_iter=20,
+    user_bounds=None,
+    scipy_opt_kwargs={},
+    scipy_opt_options={},
+    debug=False,
 ):
     """
     Fit an arbitrary CARMA model.
@@ -503,15 +584,23 @@ def carma_fit(
         yerr (array(float)): Measurement errors for y values.
         p (int): The p order of a CARMA(p, q) model.
         q (int): The q order of a CARMA(p, q) model.
-        debug (bool, optional): Turn on/off debug mode. Defaults to False.
-        user_bounds (list, optional): Parameter boundaries for the optimizer. If p > 2,
-            these are boundaries for the coefficients of the factored polynomial.
+        init_func (object, optional): A user-provided function to generate initial
+            guesses for the optimizer. Defaults to None.
+        neg_lp_func (object, optional): A user-provided function to compute negative
+            probability given an array of parameters, an array of time series values and
+            a celerite GP instance. Defaults to None.
+        optimizer_func (object, optional): A user-provided optimizer function.
             Defaults to None.
-        init_ranges (list, optional): Tuples of custom ranges to draw initial
-            parameter proposals from. If p > 2, same as for the user_bounds. Defaults to
-            None.
         n_iter (int, optional): Number of iterations to run the optimizer if de==False.
-            Defaults to 15.
+            Defaults to 20.
+        user_bounds (array(float), optional): Parameter boundaries for the default
+            optimizer. If p > 2, these are boundaries for the coefficients of the
+            factored polynomial. Defaults to None.
+        scipy_opt_kwargs (dict, optional): Keyword arguments for scipy.optimize.minimze.
+            Defaults to {}.
+        scipy_opt_options (dict, optional): "options" argument for scipy.optimize.minimze.
+            Defaults to {}.
+        debug (bool, optional): Turn on/off debug mode. Defaults to False.
 
     Raises:
         celerite.solver.LinAlgError: For non-positive definite autocovariance matrices.
@@ -562,8 +651,14 @@ def carma_fit(
 
     # determine/set optimizer function
     if optimizer_func is None:
-        opt_kwargs = {"method": "L-BFGS-B", "bounds": bounds}
-        opt = partial(scipy_opt, opt_kwargs=opt_kwargs, mode=mode)
+        scipy_opt_kwargs.update({"method": "L-BFGS-B", "bounds": bounds})
+        opt = partial(
+            scipy_opt,
+            mode=mode,
+            opt_kwargs=scipy_opt_kwargs,
+            opt_options=scipy_opt_options,
+            debug=debug,
+        )
     else:
         opt = optimizer_func
 
