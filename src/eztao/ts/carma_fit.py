@@ -40,7 +40,7 @@ def neg_fcoeff_ll(fcoeffs, y, gp):
         gp (object): celerite GP object with a proper CARMA kernel.
 
     Returns:
-        float: negative log likelihood.
+        float: Negative log likelihood.
     """
 
     assert gp.kernel.p >= 2, "Use neg_param_ll() instead!"
@@ -76,7 +76,7 @@ def neg_param_ll(params, y, gp):
         gp (object): celerite GP object with a proper CARMA kernel.
 
     Returns:
-        float: negative log likelihood.
+        float: Negative log likelihood.
     """
     assert gp.kernel.p <= 2, "Use neg_fcoeff_ll() instead!"
 
@@ -169,12 +169,12 @@ def drw_log_param_init(amp_range, log_tau_range, size=1):
         + log_tau_range[0]
     )
     init_amp = np.random.rand(size, 1) * (amp_range[1] - amp_range[0]) + amp_range[0]
-    drw_param = np.hstack((init_amp, init_tau))
+    log_drw_param = np.log(np.hstack((init_amp, init_tau)))
 
     if size == 1:
-        return drw_param[0]
+        return log_drw_param[0]
     else:
-        return drw_param
+        return log_drw_param
 
 
 def carma_log_param_init(p, q, ranges=None, size=1, a=-8.0, b=8.0, shift=0):

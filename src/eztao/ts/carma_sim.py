@@ -144,7 +144,7 @@ def gpSimByTime(carmaTerm, SNR, t, factor=10, nLC=1, log_flux=True):
         carmaTerm (object): An EzTao CARMA kernel.
         SNR (float): Signal-to-noise defined as ratio between CARMA RMS amplitude and
             the median of the measurement errors (simulated using log normal).
-        t (array(float)): The desired time stamps.
+        t (array(float)): The desired time stamps (starting from zero).
         factor (int, optional): Parameter to control the ratio in the sampling
             rate between the simulated full time series and the desired output one.
             Defaults to 10.

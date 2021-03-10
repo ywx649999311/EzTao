@@ -45,7 +45,7 @@ def downsample_byTime(tIn, tOut):
         tOut (array(float)): Time stamps of the output time series.
 
     Returns:
-        array(int): Indices for which the data points should be kept from the original 
+        array(int): Indices for which the data points should be kept from the original
         time series. Note that there could be duplicates.
     """
     get_nearest = partial(_get_nearest_idx, tIn)
@@ -58,7 +58,7 @@ def add_season(t, lc_start=0, season_start=90, season_end=270):
 
     Args:
         t (array(float)): Time stamps of the original time series.
-        lc_start (float): Starting day for the output time series. (0 -> 365.25). 
+        lc_start (float): Starting day for the output time series. (0 -> 365.25).
             Default to 0.
         season_start (float): Observing season start day within a year. Default to 90.
         season_end (float): Observing season end day within a year. Default to 270.
