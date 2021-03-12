@@ -158,7 +158,7 @@ def gpSimByTime(carmaTerm, SNR, t, factor=10, nLC=1, log_flux=True):
     """
     # get number points in full LC based on desired cadence
     duration = ceil(t[-1] - t[0])
-    N = factor * ceil(duration / np.median(t[1:] - t[:-1]))
+    N = int(factor * ceil(duration / np.median(t[1:] - t[:-1])))
 
     # simulate full LC
     tFull, yFull, yerrFull = gpSimFull(
