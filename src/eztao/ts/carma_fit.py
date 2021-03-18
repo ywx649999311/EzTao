@@ -10,6 +10,10 @@ from celerite import GP
 from eztao.carma.CARMATerm import DRW_term, DHO_term, CARMA_term, fcoeffs2coeffs
 from functools import partial
 
+# change numpy warn setting
+old_settings = np.seterr(all="warn")
+np.seterr(invalid="ignore")
+
 __all__ = [
     "drw_fit",
     "dho_fit",
@@ -44,11 +48,6 @@ def neg_fcoeff_ll(fcoeffs, y, gp):
     """
 
     assert gp.kernel.p >= 2, "Use neg_param_ll() instead!"
-
-    # change few runtimewarning action setting
-    notify_method = "raise"
-    np.seterr(over=notify_method)
-    np.seterr(under=notify_method)
     neg_ll = np.inf
 
     try:
@@ -79,11 +78,6 @@ def neg_param_ll(params, y, gp):
         float: Negative log likelihood.
     """
     assert gp.kernel.p <= 2, "Use neg_fcoeff_ll() instead!"
-
-    # change few runtimewarning action setting
-    notify_method = "raise"
-    np.seterr(over=notify_method)
-    np.seterr(under=notify_method)
     neg_ll = np.inf
 
     try:
