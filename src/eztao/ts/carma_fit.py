@@ -251,13 +251,14 @@ def carma_log_fcoeff_init(p, q, ranges=None, size=1, a=-8.0, b=8.0, shift=0):
         low_term = np.zeros((size, 1))
 
         if q > 0:
-            if q % 2 == 0:
-                low_term += log_ma_coeff[:, -1][:, np.newaxis]
+            if q % 2 == 1:
+                low_term += log_ma_coeff[:, -2][:, np.newaxis]
             for i in range(1, q, 2):
                 low_term += log_ma_coeff[:, i][:, np.newaxis]
 
         # update higher order MA
         log_coeff[:, -1] = -low_term[:, 0] + perturb[:, 0]
+        # log_coeff[:, -1] = -low_term[:, 0]
         log_coeff[:, -1] += shift
 
     if size == 1:
@@ -283,7 +284,7 @@ def sample_carma(p, q, ranges=None, a=-6, b=6, shift=0):
         carma_log_fcoeff_init(p, q, ranges=ranges, a=a, b=b, shift=shift)
     )
     ARpars = fcoeffs2coeffs(np.append(init_fcoeffs[:p], [1]))[1:]
-    MApars = fcoeffs2coeffs(init_fcoeffs[p:])
+    MApars = fcoeffs2coeffs(init_fcoeffs[p:])[::-1]
 
     return ARpars, MApars
 
