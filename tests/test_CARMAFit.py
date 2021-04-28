@@ -1,4 +1,4 @@
-"""Testing CARMA simulation and fitting.
+"""Testing CARMA fitting.
 """
 
 import numpy as np
@@ -16,86 +16,7 @@ dho1 = DHO_term(np.log(0.04), np.log(0.0027941), np.log(0.004672), np.log(0.0257
 dho2 = DHO_term(np.log(0.06), np.log(0.0001), np.log(0.0047), np.log(0.0157))
 carma31 = CARMA_term(np.log([3, 2.8, 0.8]), np.log([1, 5]))
 carma30 = CARMA_term(np.log([3, 3.189, 0.05]), np.log([0.5]))
-carma_invalid = CARMA_term(
-    [1.95797093, -3.84868981, 0.71100209], [0.36438868, -2.96417798, 0.77545961]
-)
 test_kernels = [drw1, drw2, drw3, dho1, dho2, carma30, carma31]
-
-
-def test_invalidSim():
-    """Test if sim function throws an exception when providing unstable term."""
-    with pytest.raises(RuntimeError):
-        t, y, yerr = gpSimFull(carma_invalid, 20, 365 * 10.0, 10000)
-
-
-def test_simRand():
-    """Test function gpSimRand."""
-    # SNR = 10
-    for kernel in test_kernels:
-        t, y, yerr = gpSimRand(kernel, 20, 365 * 10.0, 150, nLC=100, season=False)
-        log_amp = np.log(kernel.get_rms_amp())
-
-        # compute error in log space
-        err = np.log(np.sqrt(np.var(y, axis=1) - np.var(yerr, axis=1))) - log_amp
-
-        assert np.percentile(err, 25) > np.log(0.5)
-        assert np.percentile(err, 75) < np.log(1.2)
-        assert np.abs(np.median(err)) < 0.4
-
-        # check returned dimension
-        assert t.shape[1] == y.shape[1] == yerr.shape[1] == 150
-        assert t.shape[0] == y.shape[0] == yerr.shape[0] == 100
-
-    # test single LC simulation
-    t, y, yerr = gpSimRand(dho2, 20, 365 * 10.0, 150, nLC=1, season=False)
-    assert t.shape[0] == y.shape[0] == yerr.shape[0] == 150
-
-    # test regular flux (not in mag)
-    tF, yF, yerrF = gpSimRand(carma31, 20, 365 * 10.0, 150, nLC=1, log_flux=False)
-    assert (np.argsort(yF - yerrF) == np.argsort(-np.abs(yerrF))).all()
-
-
-def test_simByTime():
-    """Test function gpSimByTime."""
-    t = np.sort(np.random.uniform(0, 3650, 5000))
-    kernels = [drw1, dho1, carma30]
-    nLC = 2
-    SNR = 20
-
-    for k in kernels:
-        amp = k.get_rms_amp()
-        tOut, yOut, yerrOut = gpSimByTime(k, SNR, t, nLC=nLC)
-
-        assert tOut.shape == (nLC, len(t))
-        assert np.sum(yOut[0] < 0) > 0
-        assert (np.argsort(yOut - yerrOut) == np.argsort(np.abs(yerrOut))).all()
-        assert np.allclose(np.median(np.abs(yerrOut)), amp / SNR, rtol=0.2)
-
-    # test single LC simulation
-    tOut, yOut, yerrOut = gpSimByTime(dho2, SNR, t, nLC=1)
-    assert tOut.shape[0] == yOut.shape[0] == yerrOut.shape[0] == t.shape[0]
-
-
-def test_pred_lc():
-    """Test the carma_sim.pred_lc function."""
-
-    nLC = 5
-    for kernel in [drw2, dho1]:
-        t0, y0, yerr0 = gpSimRand(kernel, 10, 365 * 10.0, 100, nLC=nLC)
-
-        for i in range(nLC):
-            best = carma_fit(t0[i], y0[i], yerr0[i], kernel.p, kernel.q)
-
-            # check if residual < error
-            t1, mu1, var1 = pred_lc(t0[i], y0[i], yerr0[i], best, kernel.p, t0[i])
-            assert mu1.shape == t1.shape
-            assert np.std(mu1 - y0[i]) < np.median(np.abs(yerr0[i]))
-
-            # check if any NaN in pred lc
-            t_pred = np.linspace(t1[0], t1[-1], 1000)
-            t2, mu2, var2 = pred_lc(t0[i], y0[i], yerr0[i], best, kernel.p, t_pred)
-            assert mu2.shape == t2.shape
-            assert not np.isnan(mu2).any()
 
 
 def test_drwFit():
@@ -179,3 +100,25 @@ def test_carmaFit():
     # make sure half of the best-fits is within +/- 50% of the true
     assert np.percentile(diff2, 25) > -0.4
     assert np.percentile(diff2, 75) < 0.4
+
+
+def test_pred_lc():
+    """Test the carma_sim.pred_lc function."""
+
+    nLC = 5
+    for kernel in [drw2, dho1]:
+        t0, y0, yerr0 = gpSimRand(kernel, 10, 365 * 10.0, 100, nLC=nLC)
+
+        for i in range(nLC):
+            best = carma_fit(t0[i], y0[i], yerr0[i], kernel.p, kernel.q)
+
+            # check if residual < error
+            t1, mu1, var1 = pred_lc(t0[i], y0[i], yerr0[i], best, kernel.p, t0[i])
+            assert mu1.shape == t1.shape
+            assert np.std(mu1 - y0[i]) < np.median(np.abs(yerr0[i]))
+
+            # check if any NaN in pred lc
+            t_pred = np.linspace(t1[0], t1[-1], 1000)
+            t2, mu2, var2 = pred_lc(t0[i], y0[i], yerr0[i], best, kernel.p, t_pred)
+            assert mu2.shape == t2.shape
+            assert not np.isnan(mu2).any()
