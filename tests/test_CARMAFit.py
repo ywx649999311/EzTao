@@ -125,6 +125,21 @@ def test_log_drw_init():
     ).all()
 
 
+def test_sample_carma():
+
+    p1, q1 = (4, 3)
+    ar1, ma1 = sample_carma(p1, q1)
+    assert len(ar1) == p1
+    assert len(ma1) == q1 + 1
+    assert (np.concatenate([ar1, ma1]) > 0).all()
+
+    p2, q2 = (2, 1)
+    ar2, ma2 = sample_carma(p2, q2)
+    assert len(ar2) == p2
+    assert len(ma2) == q2 + 1
+    assert (np.concatenate([ar2, ma2]) > 0).all()
+
+
 def test_drwFit():
 
     for kernel in [drw1, drw2, drw3]:
