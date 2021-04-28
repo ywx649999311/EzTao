@@ -19,6 +19,112 @@ carma30 = CARMA_term(np.log([3, 3.189, 0.05]), np.log([0.5]))
 test_kernels = [drw1, drw2, drw3, dho1, dho2, carma30, carma31]
 
 
+def test_log_fcoeff_init():
+    """Test carma_log_fcoeff_init"""
+
+    p, q = (3, 2)
+
+    # test catching misbehaved input ranges
+    with pytest.raises(AssertionError):
+        carma_log_fcoeff_init(p, q, ma_range=[0, 1, 2])
+    with pytest.raises(AssertionError):
+        carma_log_fcoeff_init(p, q, ma_mult_range=[10, 1])
+
+    # test default ranges
+    log_fcoeffs = carma_log_fcoeff_init(p, q, size=1000)
+    for i in range(p):
+        assert ((-8 <= log_fcoeffs[:, i]) & (log_fcoeffs[:, i] <= 8)).all()
+    for i in range(p, p + q):
+        assert ((-10 <= log_fcoeffs[:, i]) & (log_fcoeffs[:, i] <= 6)).all()
+    assert ((-10 <= log_fcoeffs[:, -1]) & (log_fcoeffs[:, -1] <= 0)).all()
+
+    # test custom ranges
+    ar_range = [-4, 4]
+    ma_range = [-8, -2]
+    ma_mult_range = [0, 2]
+    log_fcoeffs2 = carma_log_fcoeff_init(
+        p,
+        q,
+        size=1000,
+        ar_range=ar_range,
+        ma_range=ma_range,
+        ma_mult_range=ma_mult_range,
+    )
+    for i in range(p):
+        assert (
+            (ar_range[0] <= log_fcoeffs2[:, i]) & (log_fcoeffs2[:, i] <= ar_range[1])
+        ).all()
+    for i in range(p, p + q):
+        assert (
+            (ma_range[0] <= log_fcoeffs2[:, i]) & (log_fcoeffs2[:, i] <= ma_range[1])
+        ).all()
+    assert (
+        (ma_mult_range[0] <= log_fcoeffs2[:, -1])
+        & (log_fcoeffs2[:, -1] <= ma_mult_range[1])
+    ).all()
+
+
+def test_log_dho_init():
+    """Test dho_log_param_init"""
+
+    p, q = (2, 1)
+
+    # test catching misbehaved input ranges
+    with pytest.raises(AssertionError):
+        dho_log_param_init(ar_range=[0, 1, 2])
+    with pytest.raises(AssertionError):
+        dho_log_param_init(ar_range=[10, 2])
+
+    # test default ranges
+    log_params = dho_log_param_init(size=1000)
+    for i in range(p):
+        assert ((-6 <= log_params[:, i]) & (log_params[:, i] <= 10)).all()
+    for i in range(p, p + q):
+        assert ((-10 <= log_params[:, i]) & (log_params[:, i] <= 6)).all()
+
+    # test custom ranges
+    ar_range = [-4, 4]
+    ma_range = [-8, -2]
+    log_params2 = dho_log_param_init(
+        ar_range=ar_range,
+        ma_range=ma_range,
+        size=1000,
+    )
+    for i in range(p):
+        assert (
+            (ar_range[0] <= log_params2[:, i]) & (log_params2[:, i] <= ar_range[1])
+        ).all()
+    for i in range(p, p + q):
+        assert (
+            (ma_range[0] <= log_params2[:, i]) & (log_params2[:, i] <= ma_range[1])
+        ).all()
+
+
+def test_log_drw_init():
+    """Test drw_log_param_init"""
+
+    amp_range = [0.01, 10]
+    log_amp_range = np.log(amp_range)
+    log_tau_range = [-1, 6]
+
+    # test catching misbehaved input ranges
+    with pytest.raises(AssertionError):
+        drw_log_param_init(amp_range=[0, 1, 2], log_tau_range=log_tau_range)
+    with pytest.raises(AssertionError):
+        drw_log_param_init(amp_range=amp_range, log_tau_range=[10, 2])
+    with pytest.raises(AssertionError):
+        drw_log_param_init(amp_range=[-2, 2], log_tau_range=log_tau_range)
+
+    # test custom ranges
+    log_params = drw_log_param_init(amp_range, log_tau_range, size=1000)
+    assert (
+        (log_amp_range[0] <= log_params[:, 0]) & (log_params[:, 0] <= log_amp_range[1])
+    ).all()
+    assert (
+        (log_tau_range[0] <= log_params[:, 1]) & (log_params[:, 1] <= log_tau_range[1])
+    ).all()
+
+
 def test_drwFit():
 
     for kernel in [drw1, drw2, drw3]:
@@ -49,7 +155,7 @@ def test_dhoFit():
     diff1 = np.log(best_fit_dho1[:, -1]) - dho1.parameter_vector[-1]
 
     # make sure half of the best-fits is reasonable based-on
-    # previous simulations. (see LC_fit_fuctions.ipynb)
+    # previous simulations. (see LC_fit_functions.ipynb)
     assert np.percentile(diff1, 25) > -0.3
     assert np.percentile(diff1, 75) < 0.2
 
@@ -64,7 +170,7 @@ def test_dhoFit():
     diff2 = np.log(best_fit_dho2[:, -2]) - (dho2.parameter_vector[-2] - np.log(1e6))
 
     # make sure half of the best-fits is reasonable based-on
-    # previous simulations. (see LC_fit_fuctions.ipynb)
+    # previous simulations. (see LC_fit_functions.ipynb)
     assert np.percentile(diff2, 25) > -0.3
     assert np.percentile(diff2, 75) < 0.2
 
