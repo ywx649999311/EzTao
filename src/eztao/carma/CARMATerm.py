@@ -6,6 +6,7 @@ celerite.
 import numpy as np
 from celerite import terms
 from numba import njit, float64, complex128, int32, vectorize
+import warnings
 
 __all__ = ["acf", "DRW_term", "DHO_term", "CARMA_term"]
 
@@ -17,7 +18,7 @@ def _compute_roots(coeffs):
     # find roots using np and make roots that are almost real real
     roots = np.roots(coeffs)
     roots[np.abs(roots.imag) < 1e-10] = roots[np.abs(roots.imag) < 1e-10].real
-    roots = roots[roots.real.argsort()]  # acsending sort by real part
+    roots = roots[roots.real.argsort()]  # ascending sort by real part
 
     return roots
 
@@ -54,12 +55,16 @@ def polymul(poly1, poly2):
 def fcoeffs2coeffs(fcoeffs):
     """Convert coeffs of a factored polynomial to the coeffs of the product
 
+    The input fcoeffs follow the notation (index) in Jones et al. (1981) with the last
+    element being an additional multiplying factor (the coeff of the highest-order term
+    in the final expanded polynomial).
+
     :meta private:
     """
     size = fcoeffs.shape[0] - 1
     odd = np.bool(size & 0x1)
     nPair = size // 2
-    poly = fcoeffs[-1:]  # This is always the coeff of highest order term
+    poly = fcoeffs[-1:]  # The coeff of highest order term in the product
 
     if odd:
         poly = polymul(poly, np.array([1.0, fcoeffs[-2]]))
@@ -72,10 +77,10 @@ def fcoeffs2coeffs(fcoeffs):
 
 
 def _roots2coeffs(roots):
-    """Generate factored polynomial from rootss
+    """Generate factored polynomial from roots
 
     The notation (index) for the factored polynomial follows that in
-    Jones et al. (1981).
+    Jones et al. (1981). Note: No multiplying is returned.
     """
     coeffs = []
     size = len(roots)
@@ -277,7 +282,8 @@ class CARMA_term(terms.Term):
 
         Args:
             log_fcoeffs (array(float)): Natural log of the coefficients for the
-                factored characteristic polynomial.
+                factored characteristic polynomial, with the last coeff being an
+                additional multiplying factor on this polynomial.
 
         """
         if log_fcoeffs.shape[0] != (self._dim):
@@ -362,7 +368,7 @@ class CARMA_term(terms.Term):
         return np.sqrt(np.abs(np.sum(_acf)))
 
     @staticmethod
-    def carma2fcoeffs(log_arpars, log_mapars):
+    def carma2fcoeffs_log(log_arpars, log_mapars):
         """Get the representation of a CARMA kernel in the factored polynomial space
 
         Args:
@@ -370,8 +376,9 @@ class CARMA_term(terms.Term):
             log_mapars (array(float)): Natural log of the MA coefficients.
 
         Returns:
-            array(float): The coefficients of the factored polymoical for the CARMA
-                kernel specified by the input parameters.
+            array(float): The coefficients (in natural log) of the factored polymoical
+                for the CARMA kernel specified by the input parameters. The last coeff
+                is a multiplying factor of the returned polynomial.
         """
 
         _p = len(log_arpars)
@@ -379,7 +386,7 @@ class CARMA_term(terms.Term):
         _pars = _compute_exp(np.append(log_arpars, log_mapars))
         _arroots = _compute_roots(np.append([1 + 0j], _pars[:_p]))
         _maroots = _compute_roots(np.array(_pars[_p:][::-1], dtype=np.complex128))
-        ma_mult = _pars[-1:]
+        ma_mult = _pars[-1:]  ## the multiplying factor
         ar_coeffs = _roots2coeffs(_arroots)
 
         if _q > 0:
@@ -388,26 +395,52 @@ class CARMA_term(terms.Term):
         else:
             ma_coeffs = ma_mult
 
-        return np.append(ar_coeffs, ma_coeffs)
+        return np.log(np.append(ar_coeffs, ma_coeffs))
+
+    @staticmethod
+    def fcoeffs2carma_log(log_fcoeffs, p):
+        """Get the representation of a CARMA kernel in the nominal CARMA parameter space
+
+        Args:
+            log_coeffs (array(float)): The array of coefficients for the factored
+                polynomial with the last coeff being a multiplying factor of the
+                polynomial.
+            p (int): The p order of the CARMA kernel.
+
+        Returns:
+            Natural log of the AR and MA parameters in two separate arrays.
+        """
+
+        fcoeffs = np.exp(log_fcoeffs)
+
+        # Append one to AR fcoeffs as the multiplying factor; MA foceffs has that included.
+        # Index in CARMA for AR: high -> low; for MA: low -> high
+        ARpars = fcoeffs2coeffs(np.append(fcoeffs[:p], [1]))[1:]
+        MApars = fcoeffs2coeffs(fcoeffs[p:])[::-1]
+
+        return np.log(ARpars), np.log(MApars)
+
+    @staticmethod
+    def carma2fcoeffs(log_arpars, log_mapars):
+        """Get the representation of a CARMA kernel in the factored polynomial space
+
+        A wrapper of `CARMA_term.carma2fcoeffs_log` for backward compatibility. This
+        function will be deprecated in future releases.
+        """
+        warnings.warn("Use carma2fcoeffs_log instead", DeprecationWarning)
+        log_fcoeffs = CARMA_term.carma2fcoeffs_log(log_arpars, log_mapars)
+        return np.exp(log_fcoeffs)
 
     @staticmethod
     def fcoeffs2carma(log_fcoeffs, p):
         """Get the representation of a CARMA kernel in the nominal CARMA parameter space
 
-        Args:
-            log_coeffs (array(float)): The array of coefficients for the factored
-                polynomial.
-            p (int): The p order of the CARMA kernel.
-
-        Returns:
-            AR and MA parameters in two separate arrays.
+        A wrapper of `CARMA_term.fcoeffs2carma_log` for backward compatibility. This
+        function will be deprecated in future releases.
         """
-
-        fcoeffs = np.exp(log_fcoeffs)
-        ARpars = fcoeffs2coeffs(np.append(fcoeffs[:p], [1]))[1:]  # AR is in high->low
-        MApars = fcoeffs2coeffs(fcoeffs[p:])[::-1]  # MA is in low->order
-
-        return ARpars, MApars
+        warnings.warn("Use fcoeffs2carma_log instead", DeprecationWarning)
+        log_ar, log_ma = CARMA_term.fcoeffs2carma_log(log_fcoeffs, p)
+        return np.exp(log_ar), np.exp(log_ma)
 
 
 class DHO_term(CARMA_term):

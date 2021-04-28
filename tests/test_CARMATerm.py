@@ -2,6 +2,7 @@ from eztao.carma.CARMATerm import *
 from eztao.carma.CARMATerm import fcoeffs2coeffs
 import numpy as np
 from numpy.polynomial import polynomial as P
+import pytest
 
 # def test_0():
 #     assert 0 == 0
@@ -70,8 +71,8 @@ def test_acf():
     assert np.allclose(carma20_acf, answers)
 
 
-def test_coeff_convert():
-    """Test the function convertion from factored coeffs to end coeffs."""
+def test_fcoeffs2coeffs():
+    """Test the function expanding factored polynomials"""
     assert np.allclose(
         fcoeffs2coeffs(np.array([1.0, 2, 1, 1])), P.polymul([1, 1, 2], [1, 1])
     )
@@ -81,35 +82,30 @@ def test_coeff_convert():
     assert np.allclose(fcoeffs2coeffs(np.array([1.0, 2])), P.polymul([1, 1], 2))
 
 
-def test_carma_fcoeffs():
-    """Test the function converting a CARMA model into the polynomical space."""
-    kernel1 = CARMA_term(np.log([3, 2.8, 0.8]), np.log([1]))
-    fcoeffs = kernel1.carma2fcoeffs(np.log([3, 2.8, 0.8]), np.log([1]))
-    recover_ar = fcoeffs2coeffs(np.append(fcoeffs[:3], [1]))[1:]
-    recover_ma = fcoeffs2coeffs(fcoeffs[3:])
+def test_carma_fcoeffs_log():
+    """Test the function converting a CARMA model into the factored polynomial space"""
+    kernel1 = CARMA_term(np.log([3, 2.8, 0.8]), np.log([1, 5]))
+    log_fcoeffs = kernel1.carma2fcoeffs_log(np.log([3, 2.8, 0.8]), np.log([1, 5]))
+    fcoeffs = np.exp(log_fcoeffs)
 
-    # test carma2fcoeffs
-    assert np.allclose(recover_ar, [3, 2.8, 0.8])
-    assert np.allclose(recover_ma, [1])
+    # test caram2foceffs_log
+    assert np.allclose(fcoeffs[-1] * fcoeffs[3], 1.0)
+
+    # test fcoeffs2carma_log
+    log_params = np.append(*kernel1.fcoeffs2carma_log(log_fcoeffs, 3))
+    assert np.allclose(log_params, kernel1.get_parameter_vector())
+
+
+def test_carma_fcoeffs():
+    """Test the going to be deprecated version of carma_fcoeff version"""
+    kernel1 = CARMA_term(np.log([3, 2.8, 0.8]), np.log([1, 5]))
+    with pytest.deprecated_call():
+        fcoeffs = kernel1.carma2fcoeffs(np.log([3, 2.8, 0.8]), np.log([1, 5]))
+
+    # test caram2foceffs
+    assert np.allclose(fcoeffs[-1] * fcoeffs[3], 1.0)
 
     # test fcoeffs2carma
-    params = np.append(*kernel1.fcoeffs2carma(np.log(fcoeffs), 3))
-    assert np.allclose(params, np.exp(kernel1.get_parameter_vector()))
-
-
-def test_CARMA_term_coeffs_convert():
-    """Test the static coeff convert functions of CARMA_term."""
-    carma31 = CARMA_term(np.log([3, 2.8, 0.8]), np.log([1, 5]))
-
-    # get log ar, ma params from kernel
-    log_ars = carma31.get_parameter_vector()[:3]
-    log_mas = carma31.get_parameter_vector()[3:]
-
-    # convert to fcoeffs using log ar and log ma
-    fcoeffs = carma31.carma2fcoeffs(log_ars, log_mas)
-    assert fcoeffs.shape[0] == (carma31.p + carma31.q + 1)
-
-    # convert back to ar and ma using foceffs
-    ars, mas = carma31.fcoeffs2carma(np.log(fcoeffs), carma31.p)
-    assert np.allclose(ars, np.exp(log_ars))
-    assert np.allclose(mas, np.exp(log_mas))
+    with pytest.deprecated_call():
+        params = np.append(*kernel1.fcoeffs2carma(np.log(fcoeffs), 3))
+    assert np.allclose(np.log(params), kernel1.get_parameter_vector())
