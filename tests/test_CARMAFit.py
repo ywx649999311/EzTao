@@ -14,8 +14,8 @@ drw2 = DRW_term(np.log(0.15), np.log(300))
 drw3 = DRW_term(np.log(0.25), np.log(800))
 dho1 = DHO_term(np.log(0.04), np.log(0.0027941), np.log(0.004672), np.log(0.0257))
 dho2 = DHO_term(np.log(0.06), np.log(0.0001), np.log(0.0047), np.log(0.0157))
-carma31 = CARMA_term(np.log([3, 2.8, 0.8]), np.log([1, 5]))
 carma30 = CARMA_term(np.log([3, 3.189, 0.05]), np.log([0.5]))
+carma31 = CARMA_term(np.log([0.5, 1.4, 0.05]), np.log([1, 5]))
 test_kernels = [drw1, drw2, drw3, dho1, dho2, carma30, carma31]
 
 
@@ -29,14 +29,6 @@ def test_log_fcoeff_init():
         carma_log_fcoeff_init(p, q, ma_range=[0, 1, 2])
     with pytest.raises(AssertionError):
         carma_log_fcoeff_init(p, q, ma_mult_range=[10, 1])
-
-    # test default ranges
-    log_fcoeffs = carma_log_fcoeff_init(p, q, size=1000)
-    for i in range(p):
-        assert ((-8 <= log_fcoeffs[:, i]) & (log_fcoeffs[:, i] <= 8)).all()
-    for i in range(p, p + q):
-        assert ((-10 <= log_fcoeffs[:, i]) & (log_fcoeffs[:, i] <= 6)).all()
-    assert ((-10 <= log_fcoeffs[:, -1]) & (log_fcoeffs[:, -1] <= 0)).all()
 
     # test custom ranges
     ar_range = [-4, 4]
@@ -74,13 +66,6 @@ def test_log_dho_init():
         dho_log_param_init(ar_range=[0, 1, 2])
     with pytest.raises(AssertionError):
         dho_log_param_init(ar_range=[10, 2])
-
-    # test default ranges
-    log_params = dho_log_param_init(size=1000)
-    for i in range(p):
-        assert ((-6 <= log_params[:, i]) & (log_params[:, i] <= 10)).all()
-    for i in range(p, p + q):
-        assert ((-10 <= log_params[:, i]) & (log_params[:, i] <= 6)).all()
 
     # test custom ranges
     ar_range = [-4, 4]
@@ -171,8 +156,8 @@ def test_dhoFit():
 
     # make sure half of the best-fits is reasonable based-on
     # previous simulations. (see LC_fit_functions.ipynb)
-    assert np.percentile(diff1, 25) > -0.3
-    assert np.percentile(diff1, 75) < 0.2
+    assert np.percentile(diff1, 25) > -0.25
+    assert np.percentile(diff1, 75) < 0.25
 
     # the second test will down scale lc by 1e6
     t2, y2, yerr2 = gpSimRand(dho2, 100, 365 * 10.0, 200, nLC=100, season=False)
@@ -186,16 +171,16 @@ def test_dhoFit():
 
     # make sure half of the best-fits is reasonable based-on
     # previous simulations. (see LC_fit_functions.ipynb)
-    assert np.percentile(diff2, 25) > -0.3
-    assert np.percentile(diff2, 75) < 0.2
+    assert np.percentile(diff2, 25) > -0.25
+    assert np.percentile(diff2, 75) < 0.25
 
 
 def test_carmaFit():
 
-    t1, y1, yerr1 = gpSimRand(carma30, 200, 365 * 10.0, 1500, nLC=150, season=False)
+    t1, y1, yerr1 = gpSimRand(carma30, 200, 365 * 10.0, 1000, nLC=150, season=False)
     best_fit_carma1 = np.array(
         Parallel(n_jobs=-1)(
-            delayed(carma_fit)(t1[i], y1[i] / 1e-6, yerr1[i] / 1e-6, 3, 0)
+            delayed(carma_fit)(t1[i], y1[i] / 1e-6, yerr1[i] / 1e-6, 3, 0, n_opt=30)
             for i in range(len(t1))
         )
     )
@@ -209,18 +194,22 @@ def test_carmaFit():
     assert np.percentile(diff1, 75) < 0.4
 
     # the second test will down scale lc by 1e6
-    t2, y2, yerr2 = gpSimRand(carma31, 300, 365 * 10.0, 2000, nLC=200, season=False)
+    t2, y2, yerr2 = gpSimRand(carma31, 300, 365 * 10.0, 1000, nLC=150, season=False)
     best_fit_carma2 = np.array(
         Parallel(n_jobs=-1)(
-            delayed(carma_fit)(t2[i], y2[i], yerr2[i], 3, 1) for i in range(len(t2))
+            delayed(carma_fit)(t2[i], y2[i], yerr2[i], 3, 1, n_opt=50)
+            for i in range(len(t2))
         )
     )
 
-    diff2 = np.log(best_fit_carma2[:, 0]) - (carma31.parameter_vector[0])
+    diff2_0 = np.log(best_fit_carma2[:, 0]) - (carma31.parameter_vector[0])
+    diff2_2 = np.log(best_fit_carma2[:, 2]) - (carma31.parameter_vector[2])
 
     # make sure half of the best-fits is within +/- 50% of the true
-    assert np.percentile(diff2, 25) > -0.4
-    assert np.percentile(diff2, 75) < 0.4
+    assert np.percentile(diff2_0, 25) > -0.25
+    assert np.percentile(diff2_0, 75) < 0.25
+    assert np.percentile(diff2_2, 25) > -0.4
+    assert np.percentile(diff2_2, 75) < 0.4
 
 
 def test_pred_lc():
