@@ -147,13 +147,39 @@ def acf(arroots, arparam, maparam):
 
 
 class DRW_term(terms.Term):
-    """
+    r"""
     Damped Random Walk (DRW) term (kernel)
+
+    .. math::
+
+        k_{DRW}(\Delta t) = \sigma^2\,e^{-\Delta t/\tau}
+
+    with the parameters ``log_sigma`` and ``log_tau``.
 
     Args:
         log_sigma (float): The natural log of the RMS amplitude of the DRW process.
         log_tau (float): The natural log of the characteristic timescale of the DRW
             process.
+
+    .. note::
+        Conversions between EzTao DRW parameters and some other DRW representations
+        seen in the literature:
+
+        .. math::
+
+            \mathrm{SF_{\infty}} = 2*\sigma^2
+
+        .. math::
+
+            \sigma^2 = \tau*\sigma_{KBS}^2/2
+
+        .. math::
+
+            \tau = 1/\alpha_1; \,\sigma_{KBS} = \beta_0
+
+        see MacLeod et al. (2010) for SF_{\infty}} and Kelly et al. (2009)
+        for \sigma_{KBS}. \alpha_1 and \beta_0 are the AR and MA parameters for a
+        CARMA(1,0) model, respectively.
     """
 
     parameter_names = ("log_sigma", "log_tau")
