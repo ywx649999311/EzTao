@@ -5,6 +5,7 @@ A collection of functions to fit/analyze time series using CARMA models.
 import numpy as np
 from math import ceil
 from scipy.optimize import minimize
+from scipy.stats import median_absolute_deviation as mad
 import celerite
 from celerite import GP
 from eztao.carma.CARMATerm import DRW_term, DHO_term, CARMA_term
@@ -185,6 +186,9 @@ def dho_log_param_init(ar_range=[-6, 10], ma_range=[-10, 2], size=1):
     """
     Randomly generate DHO coefficients in the space of the factored polynomials
 
+    The default ranges are optimized for normalized light curves (with a standard
+    deviation of unity).
+
     Args:
         ar_range(object, optional): The range (in natural log) for DHO AR parameters.
             Defaults to [-6, 10].
@@ -227,8 +231,8 @@ def carma_log_fcoeff_init(
     """
     Randomly generate CARMA coefficients in the space of the factored polynomials
 
-    The default ranges are set for normalized light curves (with a standard deviation
-    of unity).
+    The default ranges are optimized for normalized light curves (with a standard
+    deviation of unity).
 
     Args:
         p (int): The p order of a CARMA(p, q) model.
@@ -301,7 +305,7 @@ def scipy_opt(
     gp,
     init_func,
     neg_lp_func,
-    n_iter,
+    n_opt,
     mode="fcoeff",
     debug=False,
     opt_kwargs={},
@@ -318,7 +322,7 @@ def scipy_opt(
         neg_lp_func (object): A user-provided function to compute negative
             probability given an array of parameters, an array of time series values and
             a celerite GP instance. Defaults to None.
-        n_iter (int): Number of iterations to run the optimizer.
+        n_opt (int): Number of iterations to run the optimizer.
         mode (str, optional): The parameter space in which to make proposals, this
             should be determined in the "_fit" functions based on the value of the p
             order. Defaults to "fcoeff".
@@ -332,11 +336,11 @@ def scipy_opt(
         Best-fit parameters if "debug" is False, an array of scipy.optimize.OptimizeResult objects otherwise.
     """
 
-    initial_params = init_func(size=n_iter)
+    initial_params = init_func(size=n_opt)
     dim = gp.kernel.p + gp.kernel.q + 1
 
     rs = []
-    for i in range(n_iter):
+    for i in range(n_opt):
         r = minimize(
             neg_lp_func,
             initial_params[i],
@@ -372,7 +376,7 @@ def drw_fit(
     init_func=None,
     neg_lp_func=None,
     optimizer_func=None,
-    n_iter=10,
+    n_opt=10,
     user_bounds=None,
     scipy_opt_kwargs={},
     scipy_opt_options={},
@@ -392,12 +396,12 @@ def drw_fit(
             a celerite GP instance. Defaults to None.
         optimizer_func (object, optional): A user-provided optimizer function.
             Defaults to None.
-        n_iter (int, optional): Number of iterations to run the optimizer. Defaults to 10.
+        n_opt (int, optional): Number of optimizers to run. Defaults to 10.
         user_bounds (list, optional): Parameter boundaries for the default optimizer.
             Defaults to None.
-        scipy_opt_kwargs (dict, optional): Keyword arguments for scipy.optimize.minimze.
+        scipy_opt_kwargs (dict, optional): Keyword arguments for scipy.optimize.minimize.
             Defaults to {}.
-        scipy_opt_options (dict, optional): "options" argument for scipy.optimize.minimze.
+        scipy_opt_options (dict, optional): "options" argument for scipy.optimize.minimize.
             Defaults to {}.
         debug (bool, optional): Turn on/off debug mode. Defaults to False.
 
@@ -453,13 +457,8 @@ def drw_fit(
     else:
         opt = optimizer_func
 
-    best_fit_return = opt(
-        y,
-        gp,
-        init,
-        neg_lp,
-        n_iter,
-    )
+    best_fit_return = opt(y, gp, init, neg_lp, n_opt)
+
     return best_fit_return
 
 
@@ -470,14 +469,16 @@ def dho_fit(
     init_func=None,
     neg_lp_func=None,
     optimizer_func=None,
-    n_iter=20,
+    n_opt=20,
     user_bounds=None,
     scipy_opt_kwargs={},
     scipy_opt_options={},
     debug=False,
 ):
     """
-    Fit DHO to time series.
+    Fit DHO to time series
+
+    The default settings are optimized for normalized LCs.
 
     Args:
         t (array(float)): Time stamps of the input time series (the default unit is day).
@@ -490,14 +491,15 @@ def dho_fit(
             a celerite GP instance. Defaults to None.
         optimizer_func (object, optional): A user-provided optimizer function.
             Defaults to None.
-        n_iter (int, optional): The number of optimizers to initialize. Defaults to 20.
-        user_bounds (list, optional): Parameter boundaries for the default optimizer.
-            Defaults to None.
-        scipy_opt_kwargs (dict, optional): Keyword arguments for scipy.optimize.minimze.
+        n_opt (int, optional): Number of optimizers to run.. Defaults to 20.
+        user_bounds (list, optional): Parameter boundaries for the default optimizer and
+            the default flat prior. Defaults to None.
+        scipy_opt_kwargs (dict, optional): Keyword arguments for scipy.optimize.minimize.
             Defaults to {}.
-        scipy_opt_options (dict, optional): "options" argument for scipy.optimize.minimze.
+        scipy_opt_options (dict, optional): "options" argument for scipy.optimize.minimize.
             Defaults to {}.
         debug (bool, optional): Turn on/off debug mode. Defaults to False.
+
     Raises:
         celerite.solver.LinAlgError: For non-positive definite autocovariance matrices.
 
@@ -510,16 +512,14 @@ def dho_fit(
         bounds = user_bounds
     else:
         bounds = [(-15, 15)] * 4
+        bounds[2:] = [(a[0] - 8, a[1] - 8) for a in bounds[2:]]
 
-    # re-position lc
+    # re-position/normalize lc
     t = t - t[0]
     y = y - np.median(y)
-
-    # determine shift due to amplitude being too large/small
-    shift = np.array(0)
-    if np.std(y) < 1e-3 or np.std(y) > 1e3:
-        shift = np.log(np.std(y))
-        bounds[2:] += shift
+    y_std = mad(y) * 1.4826
+    y = y / y_std
+    yerr = yerr / y_std
 
     # determine negative log probability function
     if neg_lp_func is None:
@@ -528,17 +528,17 @@ def dho_fit(
         neg_lp = neg_lp_func
 
     # initialize parameter, kernel and GP
-    kernel = DHO_term(*carma_log_param_init(2, 1, shift=float(shift)))
+    kernel = DHO_term(*dho_log_param_init())
     gp = GP(kernel, mean=0)
     gp.compute(t, yerr)
 
     # determine initialize function
     if init_func is None:
-        init = partial(carma_log_param_init, 2, 1, shift=float(shift))
+        init = partial(dho_log_param_init)
     else:
         init = init_func
 
-    # determine optimizer function
+    # determine the optimizer function
     if optimizer_func is None:
         scipy_opt_kwargs.update({"method": "L-BFGS-B", "bounds": bounds})
         opt = partial(
@@ -551,13 +551,9 @@ def dho_fit(
     else:
         opt = optimizer_func
 
-    best_fit_return = opt(
-        y,
-        gp,
-        init,
-        neg_lp,
-        n_iter,
-    )
+    # get best-fit solution & adjust MA params (multiply by y_std)
+    best_fit_return = opt(y, gp, init, neg_lp, n_opt)
+    best_fit_return[2:] = best_fit_return[2:] * y_std
 
     return best_fit_return
 
@@ -571,14 +567,16 @@ def carma_fit(
     init_func=None,
     neg_lp_func=None,
     optimizer_func=None,
-    n_iter=20,
+    n_opt=20,
     user_bounds=None,
     scipy_opt_kwargs={},
     scipy_opt_options={},
     debug=False,
 ):
     """
-    Fit an arbitrary CARMA model.
+    Fit an arbitrary CARMA model
+
+    The default settings are optimized for normalized LCs.
 
     Args:
         t (array(float)): Time stamps of the input time series (the default unit is day).
@@ -593,14 +591,14 @@ def carma_fit(
             a celerite GP instance. Defaults to None.
         optimizer_func (object, optional): A user-provided optimizer function.
             Defaults to None.
-        n_iter (int, optional): Number of iterations to run the optimizer if de==False.
+        n_opt (int, optional): Number of optimizers to run.
             Defaults to 20.
         user_bounds (array(float), optional): Parameter boundaries for the default
             optimizer. If p > 2, these are boundaries for the coefficients of the
             factored polynomial. Defaults to None.
-        scipy_opt_kwargs (dict, optional): Keyword arguments for scipy.optimize.minimze.
+        scipy_opt_kwargs (dict, optional): Keyword arguments for scipy.optimize.minimize.
             Defaults to {}.
-        scipy_opt_options (dict, optional): "options" argument for scipy.optimize.minimze.
+        scipy_opt_options (dict, optional): "options" argument for scipy.optimize.minimize.
             Defaults to {}.
         debug (bool, optional): Turn on/off debug mode. Defaults to False.
 
@@ -619,18 +617,18 @@ def carma_fit(
         bounds = user_bounds
     else:
         bounds = [(-15, 15)] * dim
+        bounds[p:-1] = [(a[0] - 5, a[1] - 5) for a in bounds[p:-1]]
+        bounds[-1] = (-15, 5)
 
     # re-position lc
     t = t - t[0]
     y = y - np.median(y)
-
-    # determine/set shift due amp too large/small
-    shift = np.array(0)
-    if np.std(y) < 1e-4 or np.std(y) > 1e4:
-        shift = np.log(np.std(y))
+    y_std = mad(y) * 1.4826
+    y = y / y_std
+    yerr = yerr / y_std
 
     # initialize parameter and kernel
-    ARpars, MApars = sample_carma(p, q, shift=float(shift))
+    ARpars, MApars = sample_carma(p, q)
     kernel = CARMA_term(np.log(ARpars), np.log(MApars))
     gp = GP(kernel, mean=0)
     gp.compute(t, yerr)
@@ -638,12 +636,8 @@ def carma_fit(
     # determine/set init func
     if init_func is not None:
         init = init_func
-    elif mode == "fcoeff":
-        init = partial(carma_log_fcoeff_init, p, q, shift=float(shift))
-        bounds[-1] += shift
     else:
-        init = partial(carma_log_param_init, p, q, shift=float(shift))
-        bounds[p:] += shift
+        init = partial(carma_log_fcoeff_init, p, q)
 
     # determine/set negative log probability function
     if neg_lp_func is None:
@@ -664,12 +658,8 @@ def carma_fit(
     else:
         opt = optimizer_func
 
-    best_fit_return = opt(
-        y,
-        gp,
-        init,
-        neg_lp,
-        n_iter,
-    )
+    # get best-fit solution & adjust MA params (multiply by y_std)
+    best_fit_return = opt(y, gp, init, neg_lp, n_opt)
+    best_fit_return[p:] = best_fit_return[p:] * y_std
 
     return best_fit_return
