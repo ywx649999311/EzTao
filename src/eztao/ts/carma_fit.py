@@ -250,10 +250,10 @@ def carma_log_fcoeff_init(
     Returns:
         array(float): A ndarray of coeffs for the factored polynomials in natural log.
 
-    .. note:: The notation (index) follows that in Jones et al. (1982). The last
-        coefficient in the returned array is not part of the coefficients,
-        rather a simple multiplying factor of the entire polynomial, which is needed to
-        obtain the nominal CARMA representation.
+    .. note:: The notation (index) in the returned coefficients follows that in
+        Jones et al. (1981). The last coefficient in the returned array is not part of
+        the coefficients, rather a simple multiplying factor of the entire polynomial,
+        which is needed to obtain the nominal CARMA representation.
     """
     ## validate inputs
     assert (
