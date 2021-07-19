@@ -154,10 +154,10 @@ class DRW_term(terms.Term):
 
         k_{DRW}(\Delta t) = \sigma^2\,e^{-\Delta t/\tau}
 
-    with the parameters ``log_sigma`` and ``log_tau``.
+    with the parameters ``log_amp`` and ``log_tau``.
 
     Args:
-        log_sigma (float): The natural log of the RMS amplitude of the DRW process.
+        log_amp (float): The natural log of the RMS amplitude of the DRW process.
         log_tau (float): The natural log of the characteristic timescale of the DRW
             process.
 
@@ -182,7 +182,7 @@ class DRW_term(terms.Term):
         CARMA(1,0) model, respectively.
     """
 
-    parameter_names = ("log_sigma", "log_tau")
+    parameter_names = ("log_amp", "log_tau")
 
     def get_real_coefficients(self, params):
         """Get ``alpha_real`` and ``beta_real`` (coeffs of celerite's real kernel)
@@ -193,8 +193,8 @@ class DRW_term(terms.Term):
         Returns:
             (``alpha_real``, ``beta_real``).
         """
-        log_sigma, log_tau = params
-        return (np.exp(2 * log_sigma), 1 / np.exp(log_tau))
+        log_amp, log_tau = params
+        return (np.exp(2 * log_amp), 1 / np.exp(log_tau))
 
     def get_perturb_amp(self):
         """Get the amplitude of the perturbing noise (beta_0) in DRW
@@ -202,15 +202,15 @@ class DRW_term(terms.Term):
         Returns:
             The amplitude of the perturbing noise (beta_0) in the current DRW.
         """
-        log_sigma, log_tau = self.get_parameter_vector()
-        return self.perturb_amp(log_sigma, log_tau)
+        log_amp, log_tau = self.get_parameter_vector()
+        return self.perturb_amp(log_amp, log_tau)
 
     @staticmethod
-    def perturb_amp(log_sigma, log_tau):
+    def perturb_amp(log_amp, log_tau):
         """Compute the amplitude of the perturbing noise (beta_0) in DRW.
 
         Args:
-            log_sigma (float): The natural log of the RMS amplitude of the DRW process.
+            log_amp (float): The natural log of the RMS amplitude of the DRW process.
             log_tau (float): The natural log of the characteristic timescale of the DRW
                 process.
 
@@ -218,7 +218,7 @@ class DRW_term(terms.Term):
             The amplitude of the perturbing noise (beta_0) in the DRW specified by the
             input parameters.
         """
-        return np.exp((2 * log_sigma - np.log(1 / 2) - log_tau) / 2)
+        return np.exp((2 * log_amp - np.log(1 / 2) - log_tau) / 2)
 
     def get_rms_amp(self):
         """Get the RMS amplitude of this DRW process.
@@ -226,8 +226,8 @@ class DRW_term(terms.Term):
         Returns:
             The RMS amplitude of this DRW process.
         """
-        log_sigma, log_tau = self.get_parameter_vector()
-        return np.exp(log_sigma)
+        log_amp, log_tau = self.get_parameter_vector()
+        return np.exp(log_amp)
 
     def get_carma_parameter(self):
         """Get DRW parameters in CARMA notation (alpha_*/beta_*).
@@ -235,7 +235,7 @@ class DRW_term(terms.Term):
         Returns:
             [alpha_1, beta_0].
         """
-        return [-self.get_parameter("log_tau"), np.log(self.get_perturb_amp())]
+        return [-1 / np.exp(self.get_parameter("log_tau")), self.get_perturb_amp()]
 
     @property
     def p(self):
