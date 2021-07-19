@@ -23,7 +23,7 @@ def gpSimFull(carmaTerm, SNR, duration, N, nLC=1, log_flux=True):
         duration (float): The duration of the simulated time series (default in days).
         N (int): The number of data points in the simulated time series.
         nLC (int, optional): Number of time series to simulate. Defaults to 1.
-        log_flux (bool): Whether the flux/y values are in log scale, i.e., magnitude.
+        log_flux (bool): Whether the flux/y values are in astronomical magnitude.
             This argument affects how errors are assigned. Defaults to True.
 
     Raises:
@@ -70,14 +70,10 @@ def gpSimFull(carmaTerm, SNR, duration, N, nLC=1, log_flux=True):
         y_rank = (-y).argsort(axis=1).argsort(axis=1)
         yerr = np.array(list(map(lambda x, y: x[y], yerr, y_rank)))
 
-    yerr_sign = np.random.binomial(1, 0.5, yerr.shape)
-    yerr_sign[yerr_sign < 1] = -1
-    yerr = yerr * yerr_sign
-
     if nLC == 1:
-        return t[0], y[0] + yerr[0], yerr[0]
+        return t[0], y[0], yerr[0]
     else:
-        return t, y + yerr, yerr
+        return t, y, yerr
 
 
 def gpSimRand(
@@ -93,7 +89,7 @@ def gpSimRand(
         duration (float): The duration of the simulated time series (default in days).
         N (int): The number of data points in the simulated time series.
         nLC (int, optional): Number of time series to simulate. Defaults to 1.
-        log_flux (bool): Whether the flux/y values are in log scale, i.e., magnitude.
+        log_flux (bool): Whether the flux/y values are in astronomical magnitude.
             This argument affects how errors are assigned. Defaults to True.
         season (bool, optional): Whether to simulate 6-months seasonal gaps. Defaults
             to True.
@@ -149,7 +145,7 @@ def gpSimByTime(carmaTerm, SNR, t, factor=10, nLC=1, log_flux=True):
             rate between the simulated full time series and the desired output one.
             Defaults to 10.
         nLC (int, optional): Number of time series to simulate. Defaults to 1.
-        log_flux (bool): Whether the flux/y values are in log scale, i.e., magnitude.
+        log_flux (bool): Whether the flux/y values are in astronomical magnitude.
             This argument affects how errors are assigned. Defaults to True.
 
     Returns:

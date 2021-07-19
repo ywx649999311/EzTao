@@ -50,7 +50,7 @@ def test_simRand():
 
     # test regular flux (not in mag)
     tF, yF, yerrF = gpSimRand(carma31, 20, 365 * 10.0, 150, nLC=1, log_flux=False)
-    assert (np.argsort(yF - yerrF) == np.argsort(-np.abs(yerrF))).all()
+    assert (np.argsort(yF) == np.argsort(-yerrF)).all()
 
 
 def test_simByTime():
@@ -66,7 +66,7 @@ def test_simByTime():
 
         assert tOut.shape == (nLC, len(t))
         assert np.sum(yOut[0] < 0) > 0
-        assert (np.argsort(yOut - yerrOut) == np.argsort(np.abs(yerrOut))).all()
+        assert (np.argsort(yOut) == np.argsort(yerrOut)).all()
         assert np.allclose(np.median(np.abs(yerrOut)), amp / SNR, rtol=0.2)
 
     # test single LC simulation
