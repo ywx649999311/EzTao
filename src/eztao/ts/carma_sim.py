@@ -9,7 +9,7 @@ from celerite import GP
 from eztao.ts.utils import add_season, downsample_byN, downsample_byTime
 from eztao.carma.CARMATerm import DRW_term, CARMA_term
 
-__all__ = ["gpSimFull", "gpSimRand", "gpSimByTime", "pred_lc"]
+__all__ = ["gpSimFull", "gpSimRand", "gpSimByTime", "addNoise", "pred_lc"]
 
 
 def gpSimFull(carmaTerm, SNR, duration, N, nLC=1, log_flux=True):
@@ -175,6 +175,25 @@ def gpSimByTime(carmaTerm, SNR, t, factor=10, nLC=1, log_flux=True):
         return tOut[0], yOut[0], yerrOut[0]
     else:
         return tOut, yOut, yerrOut
+
+
+def addNoise(y, yerr):
+    """
+    Add (gaussian) noise to the input simulated time series given the measurement uncertainties.
+
+    Args:
+        y (array(float)): The 'clean' time series.
+        yerr (array(float)): The measurement uncertainties for the input
+            time series.
+
+    Returns:
+        array(float): A new time series with simulated (gaussian ) noise added
+        on top.
+    """
+    vec_norm = np.vectorize(np.random.normal, signature="(n),(n)->(n)")
+    noise = vec_norm(np.zeros_like(y), yerr)
+
+    return y + noise
 
 
 def pred_lc(t, y, yerr, params, p, t_pred, return_var=True):
