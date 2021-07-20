@@ -1,6 +1,6 @@
 .. :changelog:
 
-0.4.0 (2021-07-019)
+0.4.0 (2021-07-19)
 +++++++++++++++++++++
 - Fitting functions (i.e., `drw_fit`) are now fully modular (allow user provided optimization function, prior function and etc.)
 - A new `addNoise` function to simulated random noise given measurement errors.
