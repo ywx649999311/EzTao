@@ -5,7 +5,7 @@
 - Fitting functions (i.e., `drw_fit`) are now fully modular (allow user provided optimization function, prior function and etc.)
 - A new `addNoise` function to simulated random noise given measurement errors.
 - **Bug fixes:** #44
-- **API changes:** `n_iter` to `n_opt` in fitting functions. 
+- **API changes:** `n_iter` -> `n_opt` in fitting functions. 
 
 0.3.0 (2021-01-07)
 +++++++++++++++++++++
