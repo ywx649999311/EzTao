@@ -12,12 +12,14 @@
 #
 import os
 import sys
+
 sys.path.insert(0, os.path.abspath("../src/"))
 
 # get version from pyproject.toml
 import eztao
 import toml
-config = toml.load('../pyproject.toml')
+
+config = toml.load("../pyproject.toml")
 # -- Project information -----------------------------------------------------
 
 project = "EzTao"
@@ -25,8 +27,8 @@ copyright = "2020, Weixiang Yu"
 author = "Weixiang Yu"
 
 # The full version, including alpha/beta/rc tags
-version = config['tool']['poetry']['version']
-release = config['tool']['poetry']['version']
+version = config["tool"]["poetry"]["version"]
+release = config["tool"]["poetry"]["version"]
 
 
 # -- General configuration ---------------------------------------------------
@@ -100,8 +102,6 @@ html_context = dict(
     conf_py_path="/docs/",
 )
 
-
 # nbsphinx
 nbsphinx_kernel_name = "python3"
 nbsphinx_execute = "never"
-
