@@ -552,8 +552,12 @@ def dho_fit(
         opt = optimizer_func
 
     # get best-fit solution & adjust MA params (multiply by y_std)
+    # if not fit found, return all nan
     best_fit_return = opt(y, gp, init, neg_lp, n_opt)
-    best_fit_return[2:] = best_fit_return[2:] * y_std
+    try:
+        best_fit_return[2:] = best_fit_return[2:] * y_std
+    except:
+        pass
 
     return best_fit_return
 
@@ -659,7 +663,11 @@ def carma_fit(
         opt = optimizer_func
 
     # get best-fit solution & adjust MA params (multiply by y_std)
+    # if not fit found, return all nan
     best_fit_return = opt(y, gp, init, neg_lp, n_opt)
-    best_fit_return[p:] = best_fit_return[p:] * y_std
+    try:
+        best_fit_return[p:] = best_fit_return[p:] * y_std
+    except:
+        pass
 
     return best_fit_return
