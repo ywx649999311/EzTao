@@ -235,7 +235,7 @@ class DRW_term(terms.Term):
         Returns:
             [alpha_1, beta_0].
         """
-        return [-1 / np.exp(self.get_parameter("log_tau")), self.get_perturb_amp()]
+        return [1 / np.exp(self.get_parameter("log_tau")), self.get_perturb_amp()]
 
     @property
     def p(self):

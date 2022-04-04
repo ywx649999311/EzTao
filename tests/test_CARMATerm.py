@@ -13,11 +13,14 @@ def test_drw():
 
     # test celerite term coeffs
     celerite_coeffs = term.get_all_coefficients()
-    assert np.allclose(celerite_coeffs[0][0], [0.1225])
-    assert np.allclose(celerite_coeffs[1][0], [0.01])
+    assert np.allclose(celerite_coeffs[0][0], [0.1225])  # amp**2
+    assert np.allclose(celerite_coeffs[1][0], [0.01])  # 1 / tau
 
     # test driving amplitude
     assert np.allclose(term.get_perturb_amp(), [0.04949747468305])
+
+    # test get_carma_param: a1, b0
+    assert np.allclose(term.get_carma_parameter(), [0.01, 0.04949747468305])
 
 
 def test_dho():
