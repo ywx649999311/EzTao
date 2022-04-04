@@ -94,7 +94,7 @@ For more examples, please check out the [online documentation](https://eztao.rea
 Now you should be ready to start adding new features. Be sure to checkout the normal practice regarding how to use `poetry` on its website. When you are ready to push, also make sure the poetry.lock file is checked-in if any dependency has changed. 
 
 ## Citation
-We are working on a paper to describe the full implementation of **EzTao**. In the meantime, if you found **EzTao** useful for your research, please consider acknowledge **EzTao** using the following:
+We are working on a paper to describe the full implementation of **EzTao**. In the meantime, if you find **EzTao** useful for your research, please consider acknowledging **EzTao** using the following:
 
 ```
 @MISC{Yu2022,
