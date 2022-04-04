@@ -1,6 +1,7 @@
 ![tests](https://github.com/ywx649999311/EzTao/workflows/tests/badge.svg)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ywx649999311/EzTao/v0.4.0?filepath=docs/notebooks)
 [![Documentation Status](https://readthedocs.org/projects/eztao/badge/?version=latest)](https://eztao.readthedocs.io/en/latest/)
+<a href="https://ascl.net/2201.001"><img src="https://img.shields.io/badge/ascl-2201.001-blue.svg?colorB=262255" alt="ascl:2201.001" /></a>
 # EzTao (易道)
 **EzTao** is a toolkit for conducting AGN time-series/variability analysis, mainly utilizing the continuous-time auto-regressive moving average model (CARMA)
 
@@ -91,3 +92,24 @@ For more examples, please check out the [online documentation](https://eztao.rea
    ```
 
 Now you should be ready to start adding new features. Be sure to checkout the normal practice regarding how to use `poetry` on its website. When you are ready to push, also make sure the poetry.lock file is checked-in if any dependency has changed. 
+
+### Citation
+We are working on a paper to describe the full implementation of **EzTao**. In the meantime, if you found **EzTao** useful for your research, please consider acknowledge **EzTao** using the following:
+
+```
+@MISC{Yu2022,
+       author = {{Yu}, Weixiang and {Richards}, Gordon T.},
+        title = "{EzTao: Easier CARMA Modeling}",
+     keywords = {Software},
+ howpublished = {Astrophysics Source Code Library, record ascl:2201.001},
+         year = 2022,
+        month = jan,
+          eid = {ascl:2201.001},
+        pages = {ascl:2201.001},
+archivePrefix = {ascl},
+       eprint = {2201.001},
+       adsurl = {https://ui.adsabs.harvard.edu/abs/2022ascl.soft01001Y},
+      adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+}
+```
+
