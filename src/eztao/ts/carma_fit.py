@@ -5,7 +5,7 @@ A collection of functions to fit/analyze time series using CARMA models.
 import numpy as np
 from math import ceil
 from scipy.optimize import minimize
-from scipy.stats import median_absolute_deviation as mad
+from scipy.stats import median_abs_deviation as mad
 import celerite
 from celerite import GP
 from eztao.carma.CARMATerm import DRW_term, DHO_term, CARMA_term
