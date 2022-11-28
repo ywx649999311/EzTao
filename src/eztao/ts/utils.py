@@ -75,7 +75,6 @@ def add_season(t, lc_start=0, season_start=90, season_end=270):
     return mask
 
 
-@njit
 def median_clip(y, num_sigma=3):
     """Clip time series using a three point median filter.
 
