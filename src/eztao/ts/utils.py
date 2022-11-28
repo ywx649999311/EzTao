@@ -5,6 +5,7 @@ A collection of utility functions to assist analysis/simulation of time series d
 import numpy as np
 from numba import njit
 from functools import partial
+from scipy.stats import median_abs_deviation as mad
 
 __all__ = ["downsample_byN", "add_season", "downsample_byTime", "median_clip"]
 
@@ -92,7 +93,6 @@ def median_clip(y, num_sigma=3):
     """
     y = np.atleast_1d(y)
     lc_len = y.shape[0]
-    sigma = 0.6745 * np.median(np.abs(y - np.median(y)))
     med = y.copy()
     med[1:-2] = [np.median(y[i - 1 : i + 2]) for i in range(1, lc_len - 2)]
 
@@ -100,8 +100,9 @@ def median_clip(y, num_sigma=3):
     med[0] = np.median(np.array([y[-1], y[0], y[1]]))
     med[-1] = np.median(np.array([y[-2], y[-1], y[0]]))
 
-    # compute residual
+    # compute residual & sigma
     res = np.abs(y - med)
+    sigma = mad(res, scale='normal')
 
     # set clipping thresh hold
     raise_bar = True
@@ -113,5 +114,5 @@ def median_clip(y, num_sigma=3):
         if ratio < 0.1:
             break
         else:
-            thresh += 0.1
+            thresh += 0.1 * sigma
     return res < thresh
