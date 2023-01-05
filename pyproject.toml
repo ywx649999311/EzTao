@@ -11,13 +11,14 @@ include = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.8"
 celerite = ">= 0.3.0"
 matplotlib = "^3.3.0"
 scipy = ">= 1.5"
 numba = ">= 0.51.0"
 importlib-metadata = ">= 2.0.0"
 emcee = ">=3.0.0"
+ipykernel = "^6.19.4"
 
 [tool.poetry.dev-dependencies]
 toml = "^0.10.1"
