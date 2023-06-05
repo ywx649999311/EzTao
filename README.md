@@ -6,10 +6,10 @@
 **EzTao** is a toolkit for conducting AGN time-series/variability analysis, mainly utilizing the continuous-time auto-regressive moving average model (CARMA)
 
 ## Installation
-```
+<!--- ```
 pip install eztao
 ```
-or (from master)
+or (from master)--->
 ```
 pip install git+https://github.com/ywx649999311/EzTao.git
 ```
