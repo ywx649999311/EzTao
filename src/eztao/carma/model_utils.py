@@ -45,8 +45,8 @@ def carma_psd(arparams, maparams):
 
     def psd(f):
         # init terms
-        num_terms = np.complex(0)
-        denom_terms = np.complex(0)
+        num_terms = complex(0)
+        denom_terms = complex(0)
 
         for i, param in enumerate(maparams):
             num_terms += param * np.power(2 * np.pi * f * (1j), i)

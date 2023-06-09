@@ -84,7 +84,7 @@ def _roots2coeffs(roots):
     """
     coeffs = []
     size = len(roots)
-    odd = np.bool(size & 0x1)
+    odd = bool(size & 0x1)
     rootsComp = roots[roots.imag != 0]
     rootsReal = roots[roots.imag == 0]
     nCompPair = len(rootsComp) // 2
