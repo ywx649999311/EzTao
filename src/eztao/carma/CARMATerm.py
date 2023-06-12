@@ -62,7 +62,7 @@ def fcoeffs2coeffs(fcoeffs):
     :meta private:
     """
     size = fcoeffs.shape[0] - 1
-    odd = np.bool(size & 0x1)
+    odd = bool(size & 0x1)
     nPair = size // 2
     poly = fcoeffs[-1:]  # The coeff of highest order term in the product
 
@@ -84,7 +84,7 @@ def _roots2coeffs(roots):
     """
     coeffs = []
     size = len(roots)
-    odd = np.bool(size & 0x1)
+    odd = bool(size & 0x1)
     rootsComp = roots[roots.imag != 0]
     rootsReal = roots[roots.imag == 0]
     nCompPair = len(rootsComp) // 2
