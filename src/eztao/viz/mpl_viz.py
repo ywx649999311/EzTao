@@ -5,7 +5,6 @@ A few random plotting functions.
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import numpy as np
-import celerite
 from eztao.carma.CARMATerm import *
 from eztao.ts.carma_sim import pred_lc
 
@@ -161,7 +160,7 @@ def plot_dho_ll(
         ranges (list, optional): Parameters ranges (in natural log) within which to plot
             the surface. Defaults to [(None, None), (None, None), (None, None),
             (None, None)].
-        nLevels (int, optional): The number of levels in the final contour plot. 
+        nLevels (int, optional): The number of levels in the final contour plot.
             Defaults to 10.
 
     Keyword Args:

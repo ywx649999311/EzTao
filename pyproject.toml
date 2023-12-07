@@ -2,7 +2,7 @@
 name = "eztao"
 version = "0.4.2"
 description = "A toolkit for Active Galactic Nuclei (AGN) time-series analysis."
-authors = ["Weixiang Yu <wy73@drexel.edu>"]
+authors = ["Weixiang Yu <astro.flyfish@gmail.com>"]
 readme = "README.md"
 license = "MIT"
 repository = "https://github.com/ywx649999311/EzTao"
@@ -32,6 +32,29 @@ sphinx-copybutton = "^0.3.1"
 pre-commit = "^3.5.0"
 black = "^23.11.0"
 ruff = "^0.1.6"
+
+[tool.black]
+target-version = ["py38"]
+line-length = 88
+
+[tool.ruff]
+target-version = "py38"
+line-length = 88
+ignore-init-module-imports = true
+ignore = [
+    "E741",    # Allow ambiguous variable names
+    "PLR0911", # Allow many return statements
+    "PLR0913", # Allow many arguments to functions
+    "PLR0915", # Allow many statements
+    "PLR2004", # Allow magic numbers in comparisons
+    "F401", # unused imports
+    "F403", # import *
+    "F405", # undefined import due to F403
+    "F841",
+    "E722",
+    "E731",
+]
+exclude=["docs/conf.py"]
 
 [build-system]
 requires = ["poetry_core>=1.0.0"]

@@ -1,11 +1,11 @@
 """
-A collection of GP kernels that express the autovariance structure of CARMA models using 
+A collection of GP kernels that express the autovariance structure of CARMA models using
 celerite.
 """
 
 import numpy as np
 from celerite import terms
-from numba import njit, float64, complex128, int32, vectorize
+from numba import njit, float64, complex128
 import warnings
 
 __all__ = ["acf", "DRW_term", "DHO_term", "CARMA_term"]
@@ -143,7 +143,7 @@ def acf(arroots, arparam, maparam):
         root_k = arroots[np.roll(root_idx, j)]
         denom *= (root_k - arroots) * (np.conj(root_k) + arroots)
 
-    return sigma ** 2 * num_left * num_right / denom
+    return sigma**2 * num_left * num_right / denom
 
 
 class DRW_term(terms.Term):
@@ -255,7 +255,6 @@ class CARMA_term(terms.Term):
     """
 
     def __init__(self, log_arpars, log_mapars, *args, **kwargs):
-
         arpar_temp = "log_a{}"
         mapar_temp = "log_b{}"
         arpar_names = ("log_a1",)

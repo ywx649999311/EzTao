@@ -2,21 +2,21 @@ name: publish to pypi
 on:
   release:
     types: [published]
-    
+
 jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
       #----------------------------------------------
-      #       check-out repo and set-up python     
-      #----------------------------------------------    
+      #       check-out repo and set-up python
+      #----------------------------------------------
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
           python-version: "3.7"
       #----------------------------------------------
-      #  -----  install & configure poetry  -----      
-      #----------------------------------------------          
+      #  -----  install & configure poetry  -----
+      #----------------------------------------------
       - name: Install and configure Poetry
         uses: snok/install-poetry@v1
         with:
@@ -24,8 +24,8 @@ jobs:
           virtualenvs-create: true
           virtualenvs-in-project: true
       #----------------------------------------------
-      #       load cached venv if cache exists      
-      #----------------------------------------------          
+      #       load cached venv if cache exists
+      #----------------------------------------------
       - name: Load cached venv
         id: cached-poetry-dependencies
         uses: actions/cache@v3
@@ -34,14 +34,14 @@ jobs:
           key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
       - name: Install dependencies
       #----------------------------------------------
-      # install dependencies if cache does not exist 
-      #----------------------------------------------       
+      # install dependencies if cache does not exist
+      #----------------------------------------------
         run: poetry install
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
       #----------------------------------------------
-      #      config poetry and publish to pypi 
-      #----------------------------------------------         
+      #      config poetry and publish to pypi
+      #----------------------------------------------
       - name: Config
         run: poetry config pypi-token.pypi ${{ secrets.PYPI_TOKEN }}
-      - name: Publish 
+      - name: Publish
         run: poetry publish --build

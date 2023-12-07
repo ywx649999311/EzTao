@@ -13,15 +13,15 @@ jobs:
     if: "! contains(toJSON(github.event.commits.*.message), '[skip-tests]')"
     steps:
       #----------------------------------------------
-      #       check-out repo and set-up python     
+      #       check-out repo and set-up python
       #----------------------------------------------
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
       #----------------------------------------------
-      #  -----  install & configure poetry  -----      
-      #----------------------------------------------          
+      #  -----  install & configure poetry  -----
+      #----------------------------------------------
       - name: Install and configure Poetry
         uses: snok/install-poetry@v1
         with:
@@ -29,8 +29,8 @@ jobs:
           virtualenvs-create: true
           virtualenvs-in-project: true
       #----------------------------------------------
-      #       load cached venv if cache exists      
-      #----------------------------------------------          
+      #       load cached venv if cache exists
+      #----------------------------------------------
       - name: Load cached venv
         id: cached-poetry-dependencies
         uses: actions/cache@v2
@@ -38,14 +38,14 @@ jobs:
           path: .venv
           key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
       #----------------------------------------------
-      # install dependencies if cache does not exist 
-      #----------------------------------------------          
+      # install dependencies if cache does not exist
+      #----------------------------------------------
       - name: Install dependencies
         run: poetry install
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
       #----------------------------------------------
       #                 run tests
-      #----------------------------------------------          
+      #----------------------------------------------
       - name: Run tests
         run: |
           source .venv/bin/activate

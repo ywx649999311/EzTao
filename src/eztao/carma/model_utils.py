@@ -20,10 +20,10 @@ def drw_psd(amp, tau):
 
     # convert amp, tau to CARMA parameters
     a0 = 1 / tau
-    sigma2 = 2 * amp ** 2 * a0
+    sigma2 = 2 * amp**2 * a0
 
     def psd(f):
-        return sigma2 / (a0 ** 2 + (2 * np.pi * f) ** 2)
+        return sigma2 / (a0**2 + (2 * np.pi * f) ** 2)
 
     return psd
 
@@ -136,7 +136,7 @@ def drw_sf(amp, tau):
     """
 
     def sf(lag):
-        return np.sqrt(amp ** 2 * (1 - drw_acf(tau)(lag)))
+        return np.sqrt(amp**2 * (1 - drw_acf(tau)(lag)))
 
     return sf
 
