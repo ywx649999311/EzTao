@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "eztao"
-version = "0.4.1"
+version = "0.4.2"
 description = "A toolkit for Active Galactic Nuclei (AGN) time-series analysis."
 authors = ["Weixiang Yu <wy73@drexel.edu>"]
 readme = "README.md"
@@ -11,7 +11,7 @@ include = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = ">=3.8"
 celerite = ">= 0.3.0"
 matplotlib = "^3.3.0"
 scipy = ">= 1.5"
@@ -29,7 +29,9 @@ Sphinx = "^3.4.1"
 sphinx-rtd-theme = "^0.5.0"
 nbsphinx = ">=0.8.6"
 sphinx-copybutton = "^0.3.1"
-black = "^21.7b0"
+pre-commit = "^3.5.0"
+black = "^23.11.0"
+ruff = "^0.1.6"
 
 [build-system]
 requires = ["poetry_core>=1.0.0"]
