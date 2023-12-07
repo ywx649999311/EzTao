@@ -3,7 +3,6 @@ A collection of utility functions to assist analysis/simulation of time series d
 """
 
 import numpy as np
-from numba import njit
 from functools import partial
 from scipy.stats import median_abs_deviation as mad
 
@@ -101,7 +100,7 @@ def median_clip(y, num_sigma=3):
 
     # compute residual & sigma
     res = np.abs(y - med)
-    sigma = mad(res, scale='normal')
+    sigma = mad(res, scale="normal")
 
     # set clipping thresh hold
     raise_bar = True

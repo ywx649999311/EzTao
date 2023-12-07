@@ -47,7 +47,7 @@ def test_acf():
             ),
             atol=1e-10,
         )
-    
+
     ar = np.array([0.04, 0.0027941])
     ma = np.array([0.004672, 0.0257])
     dho_acf = carma_acf(ar, ma)

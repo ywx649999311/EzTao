@@ -72,7 +72,7 @@ ax.plot(freq, best_psd(freq), label='Best-fit PSD')
 ```
 ![drw_psd](include/drw_psd.png)
 
-__Note:__ How well the input and best-fit PSD match is up to how good the best-fit parameters are, which is highly influenced by the quality of the input time series. 
+__Note:__ How well the input and best-fit PSD match is up to how good the best-fit parameters are, which is highly influenced by the quality of the input time series.
 
 For more examples, please check out the [online documentation](https://eztao.readthedocs.io/en/latest/) or run the tutorial notebooks at ->
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ywx649999311/EzTao/v0.4.0?filepath=docs/notebooks).
@@ -81,7 +81,7 @@ For more examples, please check out the [online documentation](https://eztao.rea
 `poetry` is used to solve dependencies and to build/publish this package. Below shows how setup the environment for development (assuming you already have `poetry` installed on your machine). _**Warning:**_ `poetry` is having issue installing `llvmlite = 0.34.0` (used for `eztao = ^0.4.0`) under Python 3.9. The issue disappears for Python 3.8.
 
 1. Clone this repository, and enter the repository folder.
-2. Create a python virtual environment and activate it (the virtual environment name must be '.venv'). 
+2. Create a python virtual environment and activate it (the virtual environment name must be '.venv').
     ```
     python -m venv .venv
     source .venv/bin/activate
@@ -91,7 +91,7 @@ For more examples, please check out the [online documentation](https://eztao.rea
    poetry install
    ```
 
-Now you should be ready to start adding new features. Be sure to checkout the normal practice regarding how to use `poetry` on its website. When you are ready to push, also make sure the poetry.lock file is checked-in if any dependency has changed. 
+Now you should be ready to start adding new features. Be sure to checkout the normal practice regarding how to use `poetry` on its website. When you are ready to push, also make sure the poetry.lock file is checked-in if any dependency has changed.
 
 ## Citation
 We are working on a paper to describe the full implementation of **EzTao**. In the meantime, if you find **EzTao** useful for your research, please consider acknowledging **EzTao** using the following:
@@ -112,4 +112,3 @@ archivePrefix = {ascl},
       adsnote = {Provided by the SAO/NASA Astrophysics Data System}
 }
 ```
-

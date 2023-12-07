@@ -1,8 +1,8 @@
 EzTao
 =====
-**EzTao** is a Python toolkit for conducting time-series analysis using continuous-time autoregressive moving average (CARMA) processes. It uses `celerite`_ (a fast gaussian processes regression library) to compute the likelihood of a set of proposed CARMA parameters given the input time series. Comparing to existing tools for performing CARMA analysis in Python which use *Kalman filter* to evaluate the likelihood function (e.g., `Kali`_), **EzTao** offers a more scalable solution (see the `celerite paper`_ for a comparison). 
+**EzTao** is a Python toolkit for conducting time-series analysis using continuous-time autoregressive moving average (CARMA) processes. It uses `celerite`_ (a fast gaussian processes regression library) to compute the likelihood of a set of proposed CARMA parameters given the input time series. Comparing to existing tools for performing CARMA analysis in Python which use *Kalman filter* to evaluate the likelihood function (e.g., `Kali`_), **EzTao** offers a more scalable solution (see the `celerite paper`_ for a comparison).
 
-**EzTao** consist of tools to both simulate CARMA processes and fit (maximum likelihood estimation or MLE) time series to CARMA models. The current version of **EzTao** is built on top of `celerite`_, future versions will take advantage of `celerite2`_ (still under active development) for a better integration with other probabilistic programing libraries such as `PyMC3`_. 
+**EzTao** consist of tools to both simulate CARMA processes and fit (maximum likelihood estimation or MLE) time series to CARMA models. The current version of **EzTao** is built on top of `celerite`_, future versions will take advantage of `celerite2`_ (still under active development) for a better integration with other probabilistic programing libraries such as `PyMC3`_.
 
 Installation
 ------------

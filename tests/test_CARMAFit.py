@@ -4,7 +4,6 @@
 import numpy as np
 from eztao.carma import DRW_term, DHO_term, CARMA_term
 from eztao.ts import *
-from celerite import GP
 from joblib import Parallel, delayed
 import pytest
 
@@ -111,7 +110,6 @@ def test_log_drw_init():
 
 
 def test_sample_carma():
-
     p1, q1 = (4, 3)
     ar1, ma1 = sample_carma(p1, q1)
     assert len(ar1) == p1
@@ -126,7 +124,6 @@ def test_sample_carma():
 
 
 def test_drwFit():
-
     for kernel in [drw1, drw2, drw3]:
         t, y, yerr = gpSimRand(kernel, 50, 365 * 10.0, 200, nLC=200, season=False)
         best_fit_drw = np.array(
@@ -144,7 +141,6 @@ def test_drwFit():
 
 
 def test_dhoFit():
-
     t1, y1, yerr1 = gpSimRand(dho1, 100, 365 * 10.0, 200, nLC=100, season=False)
     best_fit_dho1 = np.array(
         Parallel(n_jobs=-1)(
@@ -176,7 +172,6 @@ def test_dhoFit():
 
 
 def test_carmaFit():
-
     t1, y1, yerr1 = gpSimRand(carma30, 200, 365 * 10.0, 1000, nLC=150, season=False)
     best_fit_carma1 = np.array(
         Parallel(n_jobs=-1)(

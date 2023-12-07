@@ -3,7 +3,6 @@ A collection of functions to fit/analyze time series using CARMA models.
 """
 
 import numpy as np
-from math import ceil
 from scipy.optimize import minimize
 from scipy.stats import median_abs_deviation as mad
 import celerite
@@ -54,10 +53,10 @@ def neg_fcoeff_ll(log_fcoeffs, y, gp):
     try:
         gp.kernel.set_log_fcoeffs(log_fcoeffs)
         neg_ll = -gp.log_likelihood(y)
-    except celerite.solver.LinAlgError as c:
+    except celerite.solver.LinAlgError:
         # print(c)
         pass
-    except Exception as e:
+    except Exception:
         pass
 
     return neg_ll
@@ -84,10 +83,10 @@ def neg_param_ll(log_params, y, gp):
     try:
         gp.set_parameter_vector(log_params)
         neg_ll = -gp.log_likelihood(y)
-    except celerite.solver.LinAlgError as c:
+    except celerite.solver.LinAlgError:
         # print(c)
         pass
-    except Exception as e:
+    except Exception:
         pass
 
     return neg_ll
