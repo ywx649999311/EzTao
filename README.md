@@ -15,12 +15,12 @@ pip install git+https://github.com/ywx649999311/EzTao.git
 ```
 ### Dependencies
 >```
->python = "^3.7"
+>python = ">=3.8,<3.12"
 >celerite = ">= 0.3.0"
->matplotlib = "^3.3.0"
 >scipy = "> 1.5.0"
 >numba = ">= 0.51.0"
->emcee = ">=3.0.0"
+>matplotlib = ">=3.3.3"
+>emcee = ">=0.3.0"
 >```
 
 ## Quick Examples
