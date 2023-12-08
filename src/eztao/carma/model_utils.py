@@ -136,7 +136,7 @@ def drw_sf(amp, tau):
     """
 
     def sf(lag):
-        return np.sqrt(amp**2 * (1 - drw_acf(tau)(lag)))
+        return np.sqrt(2 * amp**2 * (1 - drw_acf(tau)(lag)))
 
     return sf
 
@@ -156,6 +156,6 @@ def carma_sf(arparams, maparams):
     amp2 = gpTerm.get_rms_amp() ** 2
 
     def sf(lag):
-        return np.sqrt(amp2 * (1 - carma_acf(arparams, maparams)(lag)))
+        return np.sqrt(2 * amp2 * (1 - carma_acf(arparams, maparams)(lag)))
 
     return sf
