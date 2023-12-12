@@ -12,7 +12,27 @@ from eztao.carma.CARMATerm import DRW_term, CARMA_term
 __all__ = ["gpSimFull", "gpSimRand", "gpSimByTime", "addNoise", "pred_lc"]
 
 
-def gpSimFull(carmaTerm, SNR, duration, N, nLC=1, log_flux=True):
+def gp_sample(gp, size=None, seed=None):
+    """Sample Celerite GP with a fixed seed"""
+
+    if seed is not None:
+        rng = np.random.default_rng(seed=seed)
+    else:
+        rng = np.random.default_rng()
+
+    gp._recompute()
+    if size is None:
+        n = rng.standard_normal(len(gp._t))
+    else:
+        n = rng.standard_normal((len(gp._t), size))
+
+    n = gp.solver.dot_L(n)
+    if size is None:
+        return gp.mean.get_value(gp._t) + n[:, 0]
+    return gp.mean.get_value(gp._t)[None, :] + n.T
+
+
+def gpSimFull(carmaTerm, SNR, duration, N, nLC=1, log_flux=True, lc_seed=None):
     """
     Simulate CARMA time series using uniform sampling.
 
@@ -25,6 +45,7 @@ def gpSimFull(carmaTerm, SNR, duration, N, nLC=1, log_flux=True):
         nLC (int, optional): Number of time series to simulate. Defaults to 1.
         log_flux (bool): Whether the flux/y values are in astronomical magnitude.
             This argument affects how errors are assigned. Defaults to True.
+        lc_seed (int): Random seed for time series simulation. Defaults to None.
 
     Raises:
         RuntimeError: If the input CARMA term/model is not stable, thus cannot be
@@ -44,9 +65,14 @@ def gpSimFull(carmaTerm, SNR, duration, N, nLC=1, log_flux=True):
             "The covariance matrix of the provided CARMA term is not positive definite!"
         )
 
+    if lc_seed is not None:
+        rng = np.random.default_rng(seed=lc_seed)
+    else:
+        rng = np.random.default_rng()
+
     t = np.linspace(0, duration, N)
     noise = carmaTerm.get_rms_amp() / SNR
-    yerr = np.random.lognormal(0, 0.25, N) * noise
+    yerr = rng.lognormal(0, 0.25, N) * noise
     yerr = yerr[np.argsort(np.abs(yerr))]  # small->large
 
     # init GP and solve matrix
@@ -55,7 +81,7 @@ def gpSimFull(carmaTerm, SNR, duration, N, nLC=1, log_flux=True):
 
     # simulate, assign yerr based on y
     t = np.repeat(t[None, :], nLC, axis=0)
-    y = gp_sim.sample(size=nLC)
+    y = gp_sample(gp_sim, size=nLC, seed=lc_seed)
 
     # format yerr making it heteroscedastic
     yerr = np.repeat(yerr[None, :], nLC, axis=0)
@@ -77,7 +103,16 @@ def gpSimFull(carmaTerm, SNR, duration, N, nLC=1, log_flux=True):
 
 
 def gpSimRand(
-    carmaTerm, SNR, duration, N, nLC=1, log_flux=True, season=True, full_N=10_000
+    carmaTerm,
+    SNR,
+    duration,
+    N,
+    nLC=1,
+    log_flux=True,
+    season=True,
+    full_N=10_000,
+    lc_seed=None,
+    downsample_seed=None,
 ):
     """
     Simulate CARMA time series randomly downsampled from a much denser full time series.
@@ -95,12 +130,17 @@ def gpSimRand(
             to True.
         full_N (int, optional): The number of data points in the full time series
             (before downsampling). Defaults to 10_000.
+        lc_seed (int): Random seed for full time series simulation. Defaults to None.
+        downsample_seed (int): Random seed for downsampling the simulated full time
+            series. Defaults to None.
 
     Returns:
         (array(float), array(float), array(float)): Time stamps (default in day), y
         values and measurement errors of the simulated time series.
     """
-    t, y, yerr = gpSimFull(carmaTerm, SNR, duration, full_N, nLC=nLC, log_flux=log_flux)
+    t, y, yerr = gpSimFull(
+        carmaTerm, SNR, duration, full_N, nLC=nLC, log_flux=log_flux, lc_seed=lc_seed
+    )
     t = np.atleast_2d(t)
     y = np.atleast_2d(y)
     yerr = np.atleast_2d(yerr)
@@ -116,7 +156,7 @@ def gpSimRand(
             mask1 = add_season(t[i])
         else:
             mask1 = np.ones(t[i].shape[0], dtype=bool)
-        mask2 = downsample_byN(t[i, mask1], N)
+        mask2 = downsample_byN(t[i, mask1], N, seed=downsample_seed)
         tOut[i, :] = t[i, mask1][mask2]
         yOut[i, :] = y[i, mask1][mask2]
         yerrOut[i, :] = yerr[i, mask1][mask2]
@@ -127,7 +167,7 @@ def gpSimRand(
         return tOut, yOut, yerrOut
 
 
-def gpSimByTime(carmaTerm, SNR, t, factor=10, nLC=1, log_flux=True):
+def gpSimByTime(carmaTerm, SNR, t, factor=10, nLC=1, log_flux=True, lc_seed=None):
     """
     Simulate CARMA time series at desired time stamps.
 
@@ -147,6 +187,7 @@ def gpSimByTime(carmaTerm, SNR, t, factor=10, nLC=1, log_flux=True):
         nLC (int, optional): Number of time series to simulate. Defaults to 1.
         log_flux (bool): Whether the flux/y values are in astronomical magnitude.
             This argument affects how errors are assigned. Defaults to True.
+        lc_seed (int): Random seed for time series simulation. Defaults to None.
 
     Returns:
         (array(float), array(float), array(float)): Time stamps (default in day), y
@@ -158,7 +199,7 @@ def gpSimByTime(carmaTerm, SNR, t, factor=10, nLC=1, log_flux=True):
 
     # simulate full LC
     tFull, yFull, yerrFull = gpSimFull(
-        carmaTerm, SNR, duration, N=N, nLC=nLC, log_flux=log_flux
+        carmaTerm, SNR, duration, N=N, nLC=nLC, log_flux=log_flux, lc_seed=lc_seed
     )
     tFull = np.atleast_2d(tFull)
     yFull = np.atleast_2d(yFull)
@@ -177,7 +218,7 @@ def gpSimByTime(carmaTerm, SNR, t, factor=10, nLC=1, log_flux=True):
         return tOut, yOut, yerrOut
 
 
-def addNoise(y, yerr):
+def addNoise(y, yerr, seed=None):
     """
     Add (gaussian) noise to the input simulated time series given the measurement uncertainties.
 
@@ -185,12 +226,19 @@ def addNoise(y, yerr):
         y (array(float)): The 'clean' time series.
         yerr (array(float)): The measurement uncertainties for the input
             time series.
+    seed (int): Random seed for simulating noise. Defaults to None.
 
     Returns:
         array(float): A new time series with simulated (gaussian ) noise added
         on top.
     """
-    vec_norm = np.vectorize(np.random.normal, signature="(n),(n)->(n)")
+
+    if seed is not None:
+        rng = np.random.default_rng(seed=seed)
+    else:
+        rng = np.random.default_rng()
+
+    vec_norm = np.vectorize(rng.normal, signature="(n),(n)->(n)")
     noise = vec_norm(np.zeros_like(y), yerr)
 
     return y + noise

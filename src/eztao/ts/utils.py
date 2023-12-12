@@ -9,21 +9,28 @@ from scipy.stats import median_abs_deviation as mad
 __all__ = ["downsample_byN", "add_season", "downsample_byTime", "median_clip"]
 
 
-def downsample_byN(t, nObs):
+def downsample_byN(t, nObs, seed):
     """
     Randomly choose N data points from a given time series.
 
     Args:
         t (array(float)): Time stamps of the original time series.
         N (int): The number of entries in the final time series.
+        seed (int): Random seed for downsampling. Defaults to None.
 
     Returns:
         A 1d array booleans indicating which data points to keep.
     """
+
+    if seed is not None:
+        rng = np.random.default_rng(seed=seed)
+    else:
+        rng = np.random.default_rng()
+
     # random choose index
     idx = np.arange(len(t))
     mask = np.zeros_like(idx, dtype=np.bool_)
-    true_idx = np.random.choice(idx, nObs, replace=False)
+    true_idx = rng.choice(idx, nObs, replace=False)
 
     # assign chosen index to 1/True
     mask[true_idx] = 1

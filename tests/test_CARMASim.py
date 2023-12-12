@@ -26,9 +26,30 @@ def test_invalidSim():
         t, y, yerr = gpSimFull(carma_invalid, 20, 365 * 10.0, 10000)
 
 
+def test_simFullSeed():
+    """Test the lc_seed option of gpSimFull."""
+
+    # SNR = 20
+    nLC = 5
+    for kernel in test_kernels:
+        t, y1, yerr1 = gpSimFull(kernel, 20, 365 * 10.0, 1000, nLC=nLC, lc_seed=10)
+        t, y2, yerr2 = gpSimFull(kernel, 20, 365 * 10.0, 1000, nLC=nLC, lc_seed=10)
+
+        # agree between two separate calls
+        for i in range(nLC):
+            assert np.allclose(y1[i], y2[i])
+            assert np.allclose(yerr1[i], yerr2[i])
+
+        # disagree between different simulations from one call
+        assert not np.allclose(y1[0], y1[nLC - 1])
+        assert not np.allclose(y1[1], y1[nLC - 2])
+        assert not np.allclose(yerr1[0], yerr1[nLC - 1])
+        assert not np.allclose(yerr1[1], yerr1[nLC - 2])
+
+
 def test_simRand():
     """Test function gpSimRand."""
-    # SNR = 10
+    # SNR = 20
     for kernel in test_kernels:
         t, y, yerr = gpSimRand(kernel, 20, 365 * 10.0, 150, nLC=100, season=False)
         log_amp = np.log(kernel.get_rms_amp())
@@ -53,6 +74,26 @@ def test_simRand():
     assert (np.argsort(yF) == np.argsort(-yerrF)).all()
 
 
+def test_simRandSeed():
+    """Test the downsample_seed option of gpSimRand."""
+
+    # SNR = 20
+    nLC = 1
+    for kernel in test_kernels:
+        t1, y1, yerr1 = gpSimRand(
+            kernel, 20, 365 * 10.0, 150, nLC=nLC, lc_seed=10, downsample_seed=10
+        )
+        t2, y2, yerr2 = gpSimRand(
+            kernel, 20, 365 * 10.0, 150, nLC=nLC, lc_seed=10, downsample_seed=10
+        )
+        t3, y3, yerr3 = gpSimRand(
+            kernel, 20, 365 * 10.0, 150, nLC=nLC, lc_seed=10, downsample_seed=20
+        )
+
+        assert np.allclose(t1, t2)
+        assert not np.allclose(t1, t3)
+
+
 def test_simByTime():
     """Test function gpSimByTime."""
     t = np.sort(np.random.uniform(0, 3650, 5000))
@@ -72,3 +113,22 @@ def test_simByTime():
     # test single LC simulation
     tOut, yOut, yerrOut = gpSimByTime(dho2, SNR, t, nLC=1)
     assert tOut.shape[0] == yOut.shape[0] == yerrOut.shape[0] == t.shape[0]
+
+
+def test_addNoiseSeed():
+    """Test the seed option of addNoise."""
+
+    nLC = 1
+    t1, y1, yerr1 = gpSimRand(
+        test_kernels[-1], 20, 365 * 10.0, 150, nLC=nLC, lc_seed=10, downsample_seed=10
+    )
+    t2, y2, yerr2 = gpSimRand(
+        test_kernels[-1], 20, 365 * 10.0, 150, nLC=nLC, lc_seed=10, downsample_seed=10
+    )
+
+    noise_y1 = addNoise(y1, yerr1, seed=10)
+    noise_y2 = addNoise(y2, yerr2, seed=10)
+    noise_y3 = addNoise(y1, yerr1, seed=20)
+
+    assert np.allclose(noise_y1, noise_y2)
+    assert not np.allclose(noise_y1, noise_y3)
