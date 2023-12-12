@@ -1,4 +1,9 @@
 .. :changelog:
+0.4.2 (2023-12-12)
++++++++++++++++++++++
+- **New Features:** Added seed options to `gpSimRand`, `gpSimFull`, and `addNoise`
+- **Bug fixes:** #74, #75
+
 0.4.1 (2023-06-12)
 +++++++++++++++++++++
 - Update reference to numpy bool/complex (#71)
