@@ -1,6 +1,8 @@
 .. :changelog:
-0.4.2 (2023-12-12)
+0.4.3 (2023-12-15)
 +++++++++++++++++++++
+- Drop support for Python 3.7
+- Bump `numba` requirement to `>=0.57.0`.
 - **New Features:** Added seed options to `gpSimRand`, `gpSimFull`, and `addNoise`
 - **Bug fixes:** #74, #75
 
