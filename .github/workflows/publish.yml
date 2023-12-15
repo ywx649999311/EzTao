@@ -1,7 +1,7 @@
 name: publish to pypi
 on:
   release:
-    types: [published]
+    types: [released]
 
 jobs:
   publish:
