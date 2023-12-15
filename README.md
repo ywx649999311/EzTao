@@ -18,7 +18,7 @@ pip install git+https://github.com/ywx649999311/EzTao.git
 >python = ">=3.8,<3.12"
 >celerite = ">= 0.3.0"
 >scipy = "> 1.5.0"
->numba = ">= 0.51.0"
+>numba = ">= 0.57.0"
 >matplotlib = ">=3.3.3"
 >emcee = ">=0.3.0"
 >```
