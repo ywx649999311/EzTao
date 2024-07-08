@@ -19,12 +19,14 @@ numba = ">= 0.57.0"
 importlib-metadata = ">= 2.0.0"
 emcee = ">=3.0.0"
 docutils = "^0.21.2"
+numpy = "^1.26"
 
 [tool.poetry.group.dev.dependencies]
 pandas = "^1.1.4"
 pre-commit = "^3.5.0"
 black = "^23.11.0"
 ruff = "^0.1.6"
+ipykernel = "^6.29.5"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^6.0.1"
