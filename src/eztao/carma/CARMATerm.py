@@ -167,7 +167,7 @@ class DRW_term(terms.Term):
 
         .. math::
 
-            \mathrm{SF_{\infty}} = 2*\sigma^2
+            \mathrm{SF_{\infty}^2} = 2*\sigma^2
 
         .. math::
 
