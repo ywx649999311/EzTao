@@ -82,10 +82,10 @@ def add_season(t, lc_start=0, season_start=90, season_end=270):
 
 
 def median_clip(y, num_sigma=3):
-    """Clip time series using a three point median filter.
+    r"""Clip time series using a three point median filter.
 
     The sigma (standard deviation) for the time series is computed from the median  absolute deviation (MAD) as to reduce the effects from extreme outliers, where
-    sigma \sim 1.4826*MAD. If more than 10% of the data points are removed, the upper
+    sigma :math:`\sim` 1.4826*MAD. If more than 10% of the data points are removed, the upper
     bound will be lifted gradually until that fraction drops bellow 10%.
 
     Args:
