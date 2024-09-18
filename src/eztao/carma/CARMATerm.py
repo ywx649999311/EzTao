@@ -374,6 +374,12 @@ class CARMA_term(terms.Term):
         log_pars = self.get_parameter_vector()
         return self.rms_amp(log_pars[: self.p], log_pars[self.p :])
 
+    def get_carma_parameter(self):
+        """Return CARMA parameters in the natural sacle."""
+
+        log_pars = self.get_parameter_vector()
+        return _compute_exp(log_pars)
+
     @staticmethod
     def rms_amp(log_arpars, log_mapars):
         """Compute the RMS amplitude of a CARMA kernel

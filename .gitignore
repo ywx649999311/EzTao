@@ -1,3 +1,6 @@
+# mac
+*.DS_STORE
+
 # dev folder
 /dev/*
 !/dev/00_template.ipynb
