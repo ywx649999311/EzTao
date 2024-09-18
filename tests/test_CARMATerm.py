@@ -112,3 +112,15 @@ def test_carma_fcoeffs():
     with pytest.deprecated_call():
         params = np.append(*kernel1.fcoeffs2carma(np.log(fcoeffs), 3))
     assert np.allclose(np.log(params), kernel1.get_parameter_vector())
+
+
+def test_carma_get_parameters():
+    """Test the method CARMA_term.get_carma_parameter."""
+    input_ar = [3, 2.8, 0.8]
+    input_ma = [1, 5]
+    kernel1 = CARMA_term(np.log(input_ar), np.log(input_ma))
+
+    # test the equality of two functions
+    assert np.allclose(
+        np.exp(kernel1.get_parameter_vector()), kernel1.get_carma_parameter()
+    )
