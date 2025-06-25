@@ -23,7 +23,7 @@ config = toml.load("../pyproject.toml")
 # -- Project information -----------------------------------------------------
 
 project = "EzTao"
-copyright = "2020-2023, Weixiang Yu"
+copyright = "2020-2025, Weixiang Yu"
 author = "Weixiang Yu"
 
 # The full version, including alpha/beta/rc tags
