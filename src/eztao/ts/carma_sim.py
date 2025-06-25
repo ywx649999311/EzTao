@@ -56,9 +56,9 @@ def gpSimFull(carmaTerm, SNR, duration, N, nLC=1, log_flux=True, lc_seed=None):
         values and measurement errors of the simulated time series.
     """
 
-    assert isinstance(
-        carmaTerm, celerite.celerite.terms.Term
-    ), "carmaTerm must a celerite GP term"
+    assert isinstance(carmaTerm, celerite.celerite.terms.Term), (
+        "carmaTerm must a celerite GP term"
+    )
 
     if (not isinstance(carmaTerm, DRW_term)) and (carmaTerm._arroots.real > 0).any():
         raise RuntimeError(
@@ -189,6 +189,9 @@ def gpSimByTime(carmaTerm, SNR, t, factor=10, nLC=1, log_flux=True, lc_seed=None
     Returns:
         (array(float), array(float), array(float)): Time stamps (default in day), y
         values and measurement errors of the simulated time series.
+
+    Note: The simulated light curves will be different for different set of input times,
+        even with the same lc_seed.
     """
     if lc_seed is not None:
         rng = np.random.default_rng(seed=lc_seed)
@@ -207,8 +210,6 @@ def gpSimByTime(carmaTerm, SNR, t, factor=10, nLC=1, log_flux=True, lc_seed=None
     # simulate, assign yerr based on y
     t = np.repeat(t[None, :], nLC, axis=0)
     y = gp_sample(gp_sim, size=nLC, seed=lc_seed)
-
-    print
 
     # format yerr making it heteroscedastic
     yerr = np.repeat(yerr[None, :], nLC, axis=0)
