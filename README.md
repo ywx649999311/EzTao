@@ -1,5 +1,5 @@
 ![tests](https://github.com/ywx649999311/EzTao/workflows/tests/badge.svg)
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ywx649999311/EzTao/v0.4.3?filepath=docs/notebooks)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ywx649999311/EzTao/v0.4.4?filepath=docs/notebooks)
 [![Documentation Status](https://readthedocs.org/projects/eztao/badge/?version=latest)](https://eztao.readthedocs.io/en/latest/)
 <a href="https://ascl.net/2201.001"><img src="https://img.shields.io/badge/ascl-2201.001-blue.svg?colorB=262255" alt="ascl:2201.001" /></a>
 # EzTao (易道)
@@ -15,7 +15,7 @@ pip install git+https://github.com/ywx649999311/EzTao.git
 ```
 ### Dependencies
 >```
->python = ">=3.8,<3.12"
+>python = ">=3.9,<3.13"
 >celerite = ">= 0.3.0"
 >scipy = "> 1.5.0"
 >numba = ">= 0.57.0"
@@ -78,8 +78,9 @@ For more examples, please check out the [online documentation](https://eztao.rea
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ywx649999311/EzTao/v0.4.0?filepath=docs/notebooks).
 
 ## Development
-`poetry` is used to solve dependencies and to build/publish this package. Below shows how setup the environment for development (assuming you already have `poetry` installed on your machine). _**Warning:**_ `poetry` is having issue installing `llvmlite = 0.34.0` (used for `eztao = ^0.4.0`) under Python 3.9. The issue disappears for Python 3.8.
-
+`poetry` is used to solve dependencies and to build/publish this package. Below shows how setup the environment for development (assuming you already have `poetry` installed on your machine). 
+<!-- _**Warning:**_ `poetry` is having issue installing `llvmlite = 0.34.0` (used for `eztao = ^0.4.0`) under Python 3.9. The issue disappears for Python 3.8.
+ -->
 1. Clone this repository, and enter the repository folder.
 2. Create a python virtual environment and activate it (the virtual environment name must be '.venv').
     ```

@@ -1,4 +1,10 @@
 .. :changelog:
+0.4.4 (2025-06-24)
++++++++++++++++++++++
+- Drop support for Python 3.8
+- Add MJD support to `gpSimByTime`
+- **Bug fixes:** #78, #79, #88
+
 0.4.3 (2023-12-15)
 +++++++++++++++++++++
 - Drop support for Python 3.7
