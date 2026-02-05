@@ -1,5 +1,5 @@
 .. :changelog:
-0.4.4 (2025-06-24)
+0.5.0 (2026-02-05)
 +++++++++++++++++++++
 - Drop support for Python 3.10
 - Drop support for Numpy < 2.0
