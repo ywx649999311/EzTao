@@ -1,5 +1,5 @@
 ![tests](https://github.com/ywx649999311/EzTao/workflows/tests/badge.svg)
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ywx649999311/EzTao/v0.4.4?filepath=docs/notebooks)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ywx649999311/EzTao/v0.5?filepath=docs/notebooks)
 [![Documentation Status](https://readthedocs.org/projects/eztao/badge/?version=latest)](https://eztao.readthedocs.io/en/latest/)
 <a href="https://ascl.net/2201.001"><img src="https://img.shields.io/badge/ascl-2201.001-blue.svg?colorB=262255" alt="ascl:2201.001" /></a>
 # EzTao (易道)
@@ -17,10 +17,10 @@ pip install git+https://github.com/ywx649999311/EzTao.git
 >```
 >python = ">=3.10,<3.13"
 >celerite = ">= 0.3.0"
->scipy = "> 1.5.0"
->numba = ">= 0.57.0"
->matplotlib = ">=3.3.3"
->emcee = ">=0.3.0"
+>scipy = "> 1.10.0"
+>numba = ">= 0.61.0"
+>matplotlib = ">=3.7.0"
+>emcee = ">=3.0.0"
 >```
 
 ## Quick Examples
