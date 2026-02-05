@@ -1,7 +1,9 @@
 ![tests](https://github.com/ywx649999311/EzTao/workflows/tests/badge.svg)
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ywx649999311/EzTao/v0.5?filepath=docs/notebooks)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ywx649999311/EzTao/master?filepath=docs/notebooks)
 [![Documentation Status](https://readthedocs.org/projects/eztao/badge/?version=latest)](https://eztao.readthedocs.io/en/latest/)
 <a href="https://ascl.net/2201.001"><img src="https://img.shields.io/badge/ascl-2201.001-blue.svg?colorB=262255" alt="ascl:2201.001" /></a>
+[![PyPI](https://img.shields.io/pypi/v/eztao?color=blue&logo=pypi&logoColor=white)](https://pypi.org/project/eztao/)
+
 # EzTao (易道)
 **EzTao** is a toolkit for conducting AGN time-series/variability analysis, mainly utilizing the continuous-time auto-regressive moving average model (CARMA)
 

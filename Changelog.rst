@@ -9,7 +9,7 @@
 - Drop support for Python 3.8
 - Add MJD support to `gpSimByTime`
 - **Bug fixes:** #78, #79, #88
-poetry run nox
+
 0.4.3 (2023-12-15)
 +++++++++++++++++++++
 - Drop support for Python 3.7
