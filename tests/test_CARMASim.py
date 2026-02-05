@@ -1,5 +1,4 @@
-"""Testing CARMA simulation.
-"""
+"""Testing CARMA simulation."""
 
 import numpy as np
 from eztao.carma import DRW_term, DHO_term, CARMA_term
@@ -18,6 +17,7 @@ carma_invalid = CARMA_term(
     [1.95797093, -3.84868981, 0.71100209], [0.36438868, -2.96417798, 0.77545961]
 )
 test_kernels = [drw1, drw2, drw3, dho1, dho2, carma30, carma31]
+rng = np.random.default_rng()
 
 
 def test_invalidSim():
@@ -96,7 +96,7 @@ def test_simRandSeed():
 
 def test_simByTime():
     """Test function gpSimByTime."""
-    t = np.sort(np.random.uniform(0, 3650, 5000))
+    t = np.sort(rng.uniform(0, 3650, 5000))
     kernels = [drw1, dho1, carma30]
     nLC = 2
     SNR = 20

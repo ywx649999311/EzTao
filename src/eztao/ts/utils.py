@@ -29,7 +29,7 @@ def downsample_byN(t, nObs, seed):
 
     # random choose index
     idx = np.arange(len(t))
-    mask = np.zeros_like(idx, dtype=np.bool_)
+    mask = np.zeros_like(idx, dtype=bool)
     true_idx = rng.choice(idx, nObs, replace=False)
 
     # assign chosen index to 1/True
