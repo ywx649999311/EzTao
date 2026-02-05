@@ -171,8 +171,9 @@ def drw_log_param_init(amp_range, log_tau_range, size=1):
     assert log_tau_scale > 0, "Lower bound must be smaller than upper bound!"
 
     # draw samples
-    init_tau = np.exp(np.random.rand(size, 1) * log_tau_scale + log_tau_range[0])
-    init_amp = np.random.rand(size, 1) * amp_scale + amp_range[0]
+    rng = np.random.default_rng()
+    init_tau = np.exp(rng.uniform(size=(size, 1)) * log_tau_scale + log_tau_range[0])
+    init_amp = rng.uniform(size=(size, 1)) * amp_scale + amp_range[0]
     log_drw_param = np.log(np.hstack((init_amp, init_tau)))
 
     if size == 1:
@@ -212,7 +213,8 @@ def dho_log_param_init(ar_range=[-6, 10], ma_range=[-10, 2], size=1):
 
     ## draw samples
     p, q = (2, 1)
-    log_params = np.random.rand(size, 4)
+    rng = np.random.default_rng()
+    log_params = rng.uniform(size=(size, 4))
 
     # adjust ranges
     log_params[:, :p] = log_params[:, :p] * ar_scale + ar_range[0]
@@ -268,7 +270,8 @@ def carma_log_fcoeff_init(
 
     ## draw samples
     dim = int(p + q + 1)
-    log_fcoeffs = np.random.rand(size, int(dim))
+    rng = np.random.default_rng()
+    log_fcoeffs = rng.uniform(size=(size, int(dim)))
 
     # set AR, MA range
     log_fcoeffs[:, :p] = log_fcoeffs[:, :p] * ar_scale + ar_range[0]

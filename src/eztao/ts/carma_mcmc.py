@@ -72,7 +72,8 @@ def mcmc(t, y, yerr, p, q, n_walkers=32, burn_in=500, n_samples=2000, init_param
     sampler = emcee.EnsembleSampler(n_walkers, ndim, ll, args=[y, gp])
 
     print("Running burn-in...")
-    p0 = np.log(init_sample) + 1e-8 * np.random.randn(n_walkers, ndim)
+    rng = np.random.default_rng()
+    p0 = np.log(init_sample) + 1e-8 * rng.standard_normal((n_walkers, ndim))
     p0, lp, _ = sampler.run_mcmc(p0, burn_in)
 
     print("Running production...")

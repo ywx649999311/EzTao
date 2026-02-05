@@ -3,11 +3,11 @@ channels:
   - defaults
   - conda-forge
 dependencies:
-  - python=3.9
+  - python=3.10
   - matplotlib
   - numpy
   - emcee
   - pip:
     - corner
-    - eztao==0.4.4
+    - eztao
     - importlib-metadata
