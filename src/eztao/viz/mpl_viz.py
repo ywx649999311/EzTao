@@ -211,7 +211,7 @@ def plot_dho_ll(
     bulk_ll = np.negative(vec_neg_ll(ls_param_combos, y, gp))
 
     # back to shape (dim, dim, dim, dim)
-    dims = np.empty(num_param, dtype=np.int)
+    dims = np.empty(num_param, dtype=int)
     dims[inner_grid_params] = inner_dim
     dims[outer_grid_params] = outer_dim
     ll_reshape = bulk_ll.reshape(tuple(dims))

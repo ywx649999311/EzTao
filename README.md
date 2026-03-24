@@ -17,7 +17,7 @@ pip install git+https://github.com/ywx649999311/EzTao.git
 ```
 ### Dependencies
 >```
->python = ">=3.10,<3.13"
+>python = ">=3.10,<3.15"
 >celerite = ">= 0.3.0"
 >scipy = "> 1.10.0"
 >numba = ">= 0.61.0"

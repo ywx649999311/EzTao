@@ -1,7 +1,12 @@
 .. :changelog:
+0.5.1 (2026-03-24)
++++++++++++++++++++++
+- Add support for Python 3.13 and 3.14
+- Remove the importlib-metadata backport dependency
+
 0.5.0 (2026-02-05)
 +++++++++++++++++++++
-- Drop support for Python 3.10
+- Drop support for Python 3.9
 - Drop support for Numpy < 2.0
 
 0.4.4 (2025-06-24)
