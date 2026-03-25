@@ -1,7 +1,14 @@
 .. :changelog:
+0.5.1 (2026-03-24)
++++++++++++++++++++++
+- Add support for Python 3.13 and 3.14
+- Remove the importlib-metadata backport dependency
+- Increase the default `yerr` value in `gpSimByTime` and `gpSimFull` to 1e-11 to avoid numerical issues
+- Update the doc string of `gpSimByTime` to remove the description of the `factor` parameter, which is no longer used.
+
 0.5.0 (2026-02-05)
 +++++++++++++++++++++
-- Drop support for Python 3.10
+- Drop support for Python 3.9
 - Drop support for Numpy < 2.0
 
 0.4.4 (2025-06-24)
@@ -31,7 +38,6 @@
 
 0.3.0 (2021-01-07)
 +++++++++++++++++++++
-
 - update parameter initialization in fit functions; removed `de` option #26, #27
 - add few utils functions #30, #25
 - add mcmc module #29
@@ -40,14 +46,12 @@
 
 0.2.3 (2020-12-08)
 ++++++++++++++++++
-
 - add methods to CARMA_term conversion between CARMA and poly space
 - fixed bugs and add tests for model 2nd order stat functions
 - close #2, close #10
 
 0.2.1 (2020-12-05)
 ++++++++++++++++++
-
 - A bunch bug fixes in the ts.carma module
 - Improved _min_opt optimizer, now added to all fitting functions
 - Now using minimizer instead of differential evolution may result in more robust parameter estimates.

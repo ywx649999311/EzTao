@@ -17,7 +17,7 @@ pip install git+https://github.com/ywx649999311/EzTao.git
 ```
 ### Dependencies
 >```
->python = ">=3.10,<3.13"
+>python = ">=3.10,<3.15"
 >celerite = ">= 0.3.0"
 >scipy = "> 1.10.0"
 >numba = ">= 0.61.0"
@@ -77,7 +77,7 @@ ax.plot(freq, best_psd(freq), label='Best-fit PSD')
 __Note:__ How well the input and best-fit PSD match is up to how good the best-fit parameters are, which is highly influenced by the quality of the input time series.
 
 For more examples, please check out the [online documentation](https://eztao.readthedocs.io/en/latest/) or run the tutorial notebooks at ->
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ywx649999311/EzTao/v0.4.0?filepath=docs/notebooks).
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ywx649999311/EzTao/master?filepath=docs/notebooks)
 
 ## Development
 `poetry` is used to solve dependencies and to build/publish this package. Below shows how setup the environment for development (assuming you already have `poetry` installed on your machine).
