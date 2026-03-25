@@ -3,7 +3,7 @@
 +++++++++++++++++++++
 - Add support for Python 3.13 and 3.14
 - Remove the importlib-metadata backport dependency
-- Increase the default `yerr` value in `gpSimByTime`and `gpSimFull` to 1e-11 to avoid numerical issues
+- Increase the default `yerr` value in `gpSimByTime` and `gpSimFull` to 1e-11 to avoid numerical issues
 - Update the doc string of `gpSimByTime` to remove the description of the `factor` parameter, which is no longer used.
 
 0.5.0 (2026-02-05)
