@@ -56,9 +56,9 @@ def gpSimFull(carmaTerm, SNR, duration, N, nLC=1, log_flux=True, lc_seed=None):
         values and measurement errors of the simulated time series.
     """
 
-    assert isinstance(carmaTerm, celerite.celerite.terms.Term), (
-        "carmaTerm must a celerite GP term"
-    )
+    assert isinstance(
+        carmaTerm, celerite.celerite.terms.Term
+    ), "carmaTerm must a celerite GP term"
 
     if (not isinstance(carmaTerm, DRW_term)) and (carmaTerm._arroots.real > 0).any():
         raise RuntimeError(
@@ -77,7 +77,7 @@ def gpSimFull(carmaTerm, SNR, duration, N, nLC=1, log_flux=True, lc_seed=None):
 
     # init GP and solve matrix
     gp_sim = GP(carmaTerm)
-    gp_sim.compute(t)
+    gp_sim.compute(t, yerr=1e-11)
 
     # simulate, assign yerr based on y
     t = np.repeat(t[None, :], nLC, axis=0)
@@ -167,14 +167,9 @@ def gpSimRand(
         return tOut, yOut, yerrOut
 
 
-def gpSimByTime(carmaTerm, SNR, t, factor=10, nLC=1, log_flux=True, lc_seed=None):
+def gpSimByTime(carmaTerm, SNR, t, nLC=1, log_flux=True, lc_seed=None):
     """
     Simulate CARMA time series at desired time stamps.
-
-    This function uses a 'factor' parameter to determine the sampling rate of a full
-    time series to simulate and downsample from. For example, if 'factor' = 10, then
-    the full time series will be 10 times denser than the median sampling rate of the
-    provided time stamps.
 
     Args:
         carmaTerm (object): An EzTao CARMA kernel.
@@ -205,7 +200,7 @@ def gpSimByTime(carmaTerm, SNR, t, factor=10, nLC=1, log_flux=True, lc_seed=None
 
     # init GP and solve matrix
     gp_sim = GP(carmaTerm)
-    gp_sim.compute(t)
+    gp_sim.compute(t, yerr=1e-11)
 
     # simulate, assign yerr based on y
     t = np.repeat(t[None, :], nLC, axis=0)
