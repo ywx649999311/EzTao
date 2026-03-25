@@ -38,7 +38,6 @@
 
 0.3.0 (2021-01-07)
 +++++++++++++++++++++
-
 - update parameter initialization in fit functions; removed `de` option #26, #27
 - add few utils functions #30, #25
 - add mcmc module #29
@@ -47,14 +46,12 @@
 
 0.2.3 (2020-12-08)
 ++++++++++++++++++
-
 - add methods to CARMA_term conversion between CARMA and poly space
 - fixed bugs and add tests for model 2nd order stat functions
 - close #2, close #10
 
 0.2.1 (2020-12-05)
 ++++++++++++++++++
-
 - A bunch bug fixes in the ts.carma module
 - Improved _min_opt optimizer, now added to all fitting functions
 - Now using minimizer instead of differential evolution may result in more robust parameter estimates.
