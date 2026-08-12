@@ -1,3 +1,5 @@
+
+
 ![tests](https://github.com/ywx649999311/EzTao/workflows/tests/badge.svg)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ywx649999311/EzTao/master?filepath=docs/notebooks)
 [![Documentation Status](https://readthedocs.org/projects/eztao/badge/?version=latest)](https://eztao.readthedocs.io/en/latest/)
@@ -19,6 +21,7 @@ pip install git+https://github.com/ywx649999311/EzTao.git
 >```
 >python = ">=3.10,<3.15"
 >celerite = ">= 0.3.0"
+>numpy = ">=2.0"
 >scipy = "> 1.10.0"
 >numba = ">= 0.61.0"
 >matplotlib = ">=3.7.0"
