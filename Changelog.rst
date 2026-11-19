@@ -1,4 +1,8 @@
 .. :changelog:
+0.5.2 (unreleased)
++++++++++++++++++++++
+- Remove upper version caps on `scipy`, `numba` and `matplotlib` so EzTao installs alongside newer scientific packages (e.g., `jax >= 0.12`, which requires `scipy >= 1.15`)
+
 0.5.1 (2026-03-24)
 +++++++++++++++++++++
 - Add support for Python 3.13 and 3.14
