@@ -66,6 +66,12 @@ def gp_psd(carmaTerm):
     """
     Return a function that computes native GP Power Spectral Density (PSD).
 
+    The returned PSD follows the two-sided convention of Kelly et al. (2014),
+    the same one used by ``drw_psd`` and ``carma_psd``, in which the PSD
+    integrates to the kernel variance over all frequencies. celerite's own
+    ``get_psd`` uses the unitary Fourier transform in angular frequency, so its
+    output is rescaled by ``sqrt(2 * pi)`` here.
+
     Args:
         carmaTerm (object): A celerite CARMA term.
     Returns:
@@ -73,7 +79,11 @@ def gp_psd(carmaTerm):
     """
 
     def psd(f):
-        return 2.5 * carmaTerm.get_psd(2 * np.pi * f)
+        # celerite defines the PSD with the unitary Fourier transform in angular
+        # frequency, k(tau) = 1/sqrt(2 pi) * int S(omega) exp(i omega tau) domega,
+        # so P(f) = sqrt(2 pi) * S(2 pi f) converts it to the Kelly et al. (2014)
+        # convention used by drw_psd and carma_psd.
+        return np.sqrt(2 * np.pi) * carmaTerm.get_psd(2 * np.pi * f)
 
     return psd
 
