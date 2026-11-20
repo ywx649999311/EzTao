@@ -20,18 +20,18 @@ def test_psd():
         arparams = np.exp(kernel.parameter_vector[: kernel.p])
         maparams = np.exp(kernel.parameter_vector[kernel.p :])
         assert np.allclose(
-            np.log10(carma_psd(arparams, maparams)(f)[1:]),
-            np.log10(gp_psd(kernel)(f)[1:]),
-            atol=1e-2,
+            carma_psd(arparams, maparams)(f)[1:],
+            gp_psd(kernel)(f)[1:],
+            rtol=1e-6,
         )
 
     for kernel in [drw1, drw2]:
         amp = np.exp(kernel.parameter_vector[0])
         tau = np.exp(kernel.parameter_vector[1])
         assert np.allclose(
-            np.log10(drw_psd(amp, tau)(f)[1:]),
-            np.log10(gp_psd(kernel)(f)[1:]),
-            atol=1e-2,
+            drw_psd(amp, tau)(f)[1:],
+            gp_psd(kernel)(f)[1:],
+            rtol=1e-6,
         )
 
 

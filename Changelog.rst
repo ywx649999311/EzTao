@@ -1,4 +1,8 @@
 .. :changelog:
+Unreleased
++++++++++++++++++++++
+- **Bug fixes:** `gp_psd` now converts celerite's `get_psd` output to the Kelly et al. (2014) convention with the exact factor `sqrt(2 * pi)` instead of the rounded `2.5` (about 0.3% low); the PSD test now compares the two at `rtol=1e-6`
+
 0.5.2 (2026-11-19)
 +++++++++++++++++++++
 - Remove upper version caps on `scipy`, `numba` and `matplotlib` so EzTao installs alongside newer scientific packages (e.g., `jax >= 0.12`, which requires `scipy >= 1.15`)
